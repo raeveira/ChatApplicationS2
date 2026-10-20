@@ -17,6 +17,8 @@ builder.Services.AddInfrastructure(connectionString);
 
 var app = builder.Build();
 
+await app.Services.GetRequiredService<DatabaseInitializer>().InitializeAsync();
+
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
