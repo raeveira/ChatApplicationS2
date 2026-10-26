@@ -1,37 +1,24 @@
 @page "/"
-@inject NavigationManager Navigation
-
+@attribute [Authorize]
 <PageTitle>Home</PageTitle>
 
-@if (isAuthenticated)
-{
-    <h1>ChatApplicationS2</h1>
-    <p>Welcome, @displayName!</p>
+<h1>ChatApplicationS2</h1>
+<p>Welcome, @displayName!</p>
 
-    <form method="post" action="/auth/logout">
-        <AntiforgeryToken />
-        <button type="submit">Log out</button>
-    </form>
-}
+<form method="post" action="/auth/logout">
+    <AntiforgeryToken />
+    <button type="submit">Log out</button>
+</form>
 
 @code {
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
-    private bool isAuthenticated;
     private string? displayName;
 
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthenticationState).User;
-        isAuthenticated = user.Identity?.IsAuthenticated == true;
-
-        if (!isAuthenticated)
-        {
-            Navigation.NavigateTo("/login", replace: true);
-            return;
-        }
-
         displayName = user.FindFirst(Frontend.AuthEndpoints.DisplayNameClaim)?.Value ?? user.Identity?.Name;
     }
 }

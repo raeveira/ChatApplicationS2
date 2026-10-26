@@ -60,7 +60,7 @@ namespace Domain
                 throw new ArgumentException(
                     "Username may only contain letters, digits and underscores.", nameof(username));
 
-            return trimmed;
+            return trimmed.ToLowerInvariant();
         }
 
         public static string ValidateDisplayName(string displayName)

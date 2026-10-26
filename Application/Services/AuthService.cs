@@ -16,7 +16,7 @@ public class AuthService(IUserRepository userRepository, IPasswordHasher passwor
 
         // The domain validates the username and display name; a blank display name falls back to the username.
         var username = User.ValidateUsername(request.Username);
-        var displayName = string.IsNullOrWhiteSpace(request.DisplayName) ? username : request.DisplayName;
+        var displayName = string.IsNullOrWhiteSpace(request.DisplayName) ? request.Username.Trim() : request.DisplayName;
         var user = User.Create(username, displayName);
 
         if (await userRepository.GetUserByUsernameAsync(user.Username, cancellationToken) is not null)
@@ -49,7 +49,7 @@ public class AuthService(IUserRepository userRepository, IPasswordHasher passwor
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrEmpty(request.Password))
             throw new InvalidCredentialsException();
 
-        var login = await userRepository.GetUserLoginAsync(request.Username.Trim(), cancellationToken);
+        var login = await userRepository.GetUserLoginAsync(request.Username.Trim().ToLowerInvariant(), cancellationToken);
 
         // Unknown user and wrong password produce the same error so usernames can't be probed.
         if (login is null || !passwordHasher.Verify(request.Password, login.PasswordHash))
