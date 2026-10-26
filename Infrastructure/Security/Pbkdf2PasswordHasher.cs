@@ -10,7 +10,7 @@ public class Pbkdf2PasswordHasher : IPasswordHasher
     private const int HashSize = 32;
     private const int Iterations = 600_000;
 
-    public static string Hash(string password)
+    public string Hash(string password)
     {
         var salt = RandomNumberGenerator.GetBytes(SaltSize);
         var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, HashAlgorithmName.SHA256, HashSize);
@@ -18,7 +18,7 @@ public class Pbkdf2PasswordHasher : IPasswordHasher
         return $"{Iterations}.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
     }
 
-    public static bool Verify(string password, string passwordHash)
+    public bool Verify(string password, string passwordHash)
     {
         var parts = passwordHash.Split('.');
         if (parts.Length != 3 || !int.TryParse(parts[0], out var iterations))
