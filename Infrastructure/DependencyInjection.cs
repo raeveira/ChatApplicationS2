@@ -9,6 +9,10 @@ public static class DependencyInjection
     {
         services.AddSingleton(new NpgsqlDataSourceBuilder(connectionString).Build());
         services.AddSingleton<DatabaseInitializer>();
+        services.AddSingleton<DatabaseConnection>(provider => new DatabaseConnection(connectionString));
+        
+        services.AddScoped<UserRepository>();
+        
         return services;
     }
 }
