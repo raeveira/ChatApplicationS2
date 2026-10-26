@@ -1,0 +1,40 @@
+.login {
+    max-width: 360px;
+    margin: 4rem auto;
+    padding: 0 1rem;
+    font-family: system-ui, sans-serif;
+}
+
+.login ::deep label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: 600;
+}
+
+.login ::deep input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0.25rem;
+    padding: 0.5rem;
+    font-size: 1rem;
+}
+
+.login ::deep button {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.6rem;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.login ::deep .validation-message,
+.login ::deep .error {
+    margin: 0.25rem 0 0;
+    color: #b00020;
+    font-size: 0.9rem;
+}
+
+.login .switch {
+    margin-top: 1.5rem;
+    text-align: center;
+}

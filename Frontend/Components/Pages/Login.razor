@@ -1,0 +1,51 @@
+@page "/login"
+@inject NavigationManager Navigation
+
+<PageTitle>Log in</PageTitle>
+
+<div class="login">
+    <h1>Log in</h1>
+
+    <form method="post" action="/auth/login">
+        <AntiforgeryToken />
+
+        <label for="username">Username</label>
+        <input id="username" name="username" required autocomplete="username" />
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password" />
+
+        @if (ErrorMessage is not null)
+        {
+            <p class="error" role="alert">@ErrorMessage</p>
+        }
+
+        <button type="submit">Log in</button>
+    </form>
+
+    <p class="switch">No account yet? <a href="register">Register</a></p>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? Error { get; set; }
+
+    private string? ErrorMessage => Error switch
+    {
+        null => null,
+        "invalid" => "Invalid username or password.",
+        _ => "Something went wrong. Please try again."
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationState;
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/", replace: true);
+        }
+    }
+}

@@ -1,0 +1,114 @@
+@page "/register"
+@using System.ComponentModel.DataAnnotations
+@using Application.Dtos
+@using Application.Exceptions
+@using Application.Services
+@using Domain
+@using Microsoft.AspNetCore.Components.Forms
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Register</PageTitle>
+
+<div class="register">
+    <h1>Register</h1>
+
+    <EditForm Model="model" OnValidSubmit="SubmitAsync" FormName="register">
+        <DataAnnotationsValidator />
+
+        <label for="username">Username</label>
+        <InputText id="username" @bind-Value="model.Username" autocomplete="username" />
+        <ValidationMessage For="() => model.Username" />
+
+        <label for="displayName">Display name (optional)</label>
+        <InputText id="displayName" @bind-Value="model.DisplayName" />
+        <ValidationMessage For="() => model.DisplayName" />
+
+        <label for="password">Password</label>
+        <InputText id="password" type="password" @bind-Value="model.Password" autocomplete="new-password" />
+        <ValidationMessage For="() => model.Password" />
+
+        <label for="confirmPassword">Confirm password</label>
+        <InputText id="confirmPassword" type="password" @bind-Value="model.ConfirmPassword" autocomplete="new-password" />
+        <ValidationMessage For="() => model.ConfirmPassword" />
+
+        @if (error is not null)
+        {
+            <p class="error" role="alert">@error</p>
+        }
+
+        <button type="submit" disabled="@isSubmitting">
+            @(isSubmitting ? "Creating account..." : "Register")
+        </button>
+    </EditForm>
+
+    <p class="switch">Already have an account? <a href="login">Log in</a></p>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private readonly RegisterModel model = new();
+    private string? error;
+    private bool isSubmitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationState;
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/", replace: true);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        isSubmitting = true;
+        error = null;
+
+        try
+        {
+            await AuthService.RegisterAsync(new RegisterUserRequest(model.Username, model.Password, model.DisplayName));
+            Navigation.NavigateTo("login");
+        }
+        catch (UsernameTakenException ex)
+        {
+            error = ex.Message;
+        }
+        catch (ArgumentException ex)
+        {
+            // Domain validation messages are written for users; ParamName is appended by the base class, so strip it.
+            error = ex.Message.Split(" (Parameter", 2)[0];
+        }
+        catch (Exception)
+        {
+            error = "Something went wrong. Please try again.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private sealed class RegisterModel
+    {
+        [Required(ErrorMessage = "Username is required.")]
+        [StringLength(User.MaxUsernameLength, MinimumLength = User.MinUsernameLength,
+            ErrorMessage = "Username must be between 3 and 32 characters.")]
+        [RegularExpression("^[A-Za-z0-9_]+$", ErrorMessage = "Username may only contain letters, digits and underscores.")]
+        public string Username { get; set; } = string.Empty;
+
+        [StringLength(User.MaxDisplayNameLength, ErrorMessage = "Display name can be at most 64 characters.")]
+        public string? DisplayName { get; set; }
+
+        [Required(ErrorMessage = "Password is required.")]
+        [StringLength(AuthService.MaxPasswordLength, MinimumLength = AuthService.MinPasswordLength,
+            ErrorMessage = "Password must be between 8 and 128 characters.")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please confirm your password.")]
+        [Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}
