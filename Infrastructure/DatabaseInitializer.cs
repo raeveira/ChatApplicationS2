@@ -38,6 +38,9 @@ public class DatabaseInitializer(NpgsqlDataSource dataSource)
                 IconUrl TEXT,
                 CreatedAt TIMESTAMP NOT NULL DEFAULT NOW(),
                 UpdatedAt TIMESTAMP NOT NULL DEFAULT NOW()
+
+                CONSTRAINT chk_username CHECK (Username = LOWER(Username))
+                CONSTRAINT chk_displayname CHECK (DisplayName = TRIM(DisplayName))
             );
         ";
         await command.ExecuteNonQueryAsync(cancellationToken);
