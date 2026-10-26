@@ -12,6 +12,8 @@ public static class DependencyInjection
         services.AddSingleton<DatabaseConnection>(provider => new DatabaseConnection(connectionString));
         
         services.AddScoped<UserRepository>();
+        services.AddScoped<ChatRepository>();
+        services.AddScoped<MessageRepository>();
         
         return services;
     }
