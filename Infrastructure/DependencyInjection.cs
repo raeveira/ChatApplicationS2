@@ -13,6 +13,7 @@ public static class DependencyInjection
         
         services.AddScoped<UserRepository>();
         services.AddScoped<ChatRepository>();
+        services.AddScoped<ChatMemberRepository>();
         services.AddScoped<MessageRepository>();
         
         return services;
