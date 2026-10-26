@@ -1,27 +1,50 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace Domain
 {
     public sealed class Chat
     {
-        Guid Id { get; init; }
-        EChatType Type { get; init; }
-        string? Name { get; set; }
-        DateTime CreatedAt { get; set; }
+        public Guid Id { get; }
+        public EChatType Type { get; }
+        public string? Name { get; private set; }
+        public DateTime CreatedAt { get; }
 
-        public Chat(EChatType type, string? name)
+        private Chat(Guid id, EChatType type, string? name, DateTime createdAt)
         {
-            if (type == EChatType.Group && string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("A group chat must have a name.", nameof(name));
-
-            if (type == EChatType.Private && name != null)
-                throw new ArgumentException("A private chat must not have a name.", nameof(name));
-
+            Id = id;
             Type = type;
             Name = name;
+            CreatedAt = createdAt;
+        }
+
+        public static Chat Create(EChatType type, string? name)
+        {
+            return new Chat(Guid.NewGuid(), type, ValidateName(type, name), DateTime.UtcNow);
+        }
+
+        // Rebuilds a chat from stored data; the values were validated when they were first saved.
+        public static Chat Restore(Guid id, EChatType type, string? name, DateTime createdAt)
+        {
+            return new Chat(id, type, name, createdAt);
+        }
+
+        public void Rename(string? name)
+        {
+            Name = ValidateName(Type, name);
+        }
+
+        private static string? ValidateName(EChatType type, string? name)
+        {
+            if (type == EChatType.Group)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                    throw new ArgumentException("A group chat must have a name.", nameof(name));
+
+                return name.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("A private chat must not have a name.", nameof(name));
+
+            return null;
         }
     }
 }

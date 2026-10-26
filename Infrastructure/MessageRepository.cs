@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Npgsql;
-using Infrastructure.Dtos;
+using Application.Dtos;
+using Application.Interfaces;
 
 namespace Infrastructure
 {
-    public class MessageRepository
+    public class MessageRepository : IMessageRepository
     {
         private const string SelectColumns = "Id, SentById, SentInId, Content, SentAt";
 

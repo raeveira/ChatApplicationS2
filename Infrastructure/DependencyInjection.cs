@@ -1,3 +1,5 @@
+using Application.Interfaces;
+using Infrastructure.Security;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -11,10 +13,11 @@ public static class DependencyInjection
         services.AddSingleton<DatabaseInitializer>();
         services.AddSingleton<DatabaseConnection>(provider => new DatabaseConnection(connectionString));
         
-        services.AddScoped<UserRepository>();
-        services.AddScoped<ChatRepository>();
-        services.AddScoped<ChatMemberRepository>();
-        services.AddScoped<MessageRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IChatRepository, ChatRepository>();
+        services.AddScoped<IChatMemberRepository, ChatMemberRepository>();
+        services.AddScoped<IMessageRepository, MessageRepository>();
+        services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         
         return services;
     }

@@ -1,24 +1,41 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace Domain
 {
     public sealed class Message
     {
-        Guid Id { get; init; }
-        Guid SentById { get; init; }
-        Guid SentInId { get; init; }
-        string Content { get; set; }
-        DateTime SentAt { get; init; }
+        public const int MaxContentLength = 4000;
 
-        public Message(string content)
+        public Guid Id { get; }
+        public Guid SentById { get; }
+        public Guid SentInId { get; }
+        public string Content { get; }
+        public DateTime SentAt { get; }
+
+        private Message(Guid id, Guid sentById, Guid sentInId, string content, DateTime sentAt)
         {
-            if(string.IsNullOrWhiteSpace(content))
+            Id = id;
+            SentById = sentById;
+            SentInId = sentInId;
+            Content = content;
+            SentAt = sentAt;
+        }
+
+        public static Message Create(Guid sentById, Guid sentInId, string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
                 throw new ArgumentException("Message content cannot be empty.", nameof(content));
 
-            Content = content;
+            var trimmed = content.Trim();
+            if (trimmed.Length > MaxContentLength)
+                throw new ArgumentException(
+                    $"Message content cannot be longer than {MaxContentLength} characters.", nameof(content));
+
+            return new Message(Guid.NewGuid(), sentById, sentInId, trimmed, DateTime.UtcNow);
+        }
+
+        // Rebuilds a message from stored data; the values were validated when it was first sent.
+        public static Message Restore(Guid id, Guid sentById, Guid sentInId, string content, DateTime sentAt)
+        {
+            return new Message(id, sentById, sentInId, content, sentAt);
         }
     }
 }

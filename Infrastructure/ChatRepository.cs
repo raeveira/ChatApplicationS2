@@ -5,11 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Domain;
 using Npgsql;
-using Infrastructure.Dtos;
+using Application.Dtos;
+using Application.Interfaces;
 
 namespace Infrastructure
 {
-    public class ChatRepository
+    public class ChatRepository : IChatRepository
     {
         private readonly DatabaseConnection _databaseConnection;
 

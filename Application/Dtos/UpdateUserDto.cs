@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Infrastructure.Dtos
+namespace Application.Dtos
 {
-    public class UpdatePasswordHashDto
+    public class UpdateUserDto
     {
-        public string PasswordHash { get; set; }
+        public string DisplayName { get; set; }
+        public string IconUrl { get; set; }
         public DateTime UpdatedAt { get; set; }
+        
     }
 }

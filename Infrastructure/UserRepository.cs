@@ -4,11 +4,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Npgsql;
-using Infrastructure.Dtos;
+using Application.Dtos;
+using Application.Interfaces;
 
 namespace Infrastructure
 {
-    public class UserRepository
+    public class UserRepository : IUserRepository
     {
         private readonly DatabaseConnection _databaseConnection;
 

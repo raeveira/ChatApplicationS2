@@ -1,6 +1,6 @@
 using Domain;
 
-namespace Infrastructure.Dtos
+namespace Application.Dtos
 {
     public class AddChatMemberDto
     {
