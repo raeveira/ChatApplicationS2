@@ -7,16 +7,16 @@
     <div class="account-window">
         <aside class="account-sidebar">
             <div class="account-profile">
-                <Avatar Size="30" IconUrl="@me?.IconUrl" />
+                <Avatar Size="36" Color="#444" IconUrl="@me?.IconUrl" Name="@me?.Username" />
                 <div>
                     @(me?.DisplayName ?? me?.Username)
-                    <small><a href="">← Back to chats</a></small>
+                    <small><a href=""><i class="bi bi-arrow-left"></i> Back to chats</a></small>
                 </div>
             </div>
 
             <form class="logout" method="post" action="/auth/logout">
                 <AntiforgeryToken />
-                <button type="submit">⎋ Log Out</button>
+                <button type="submit"><i class="bi bi-box-arrow-left"></i> Log Out</button>
             </form>
         </aside>
 

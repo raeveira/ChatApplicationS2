@@ -3,13 +3,20 @@
     {
         <img src="@IconUrl" alt="" />
     }
-    else if (!string.IsNullOrEmpty(Letter))
+    else if (!string.IsNullOrEmpty(FallbackLetter))
     {
-        @Letter
+        @FallbackLetter
     }
 </div>
 
 @code {
+    // Shown when there is no profile picture: an explicit letter, otherwise the first letter of Name.
+    [Parameter] public string? Name { get; set; }
+
+    private string? FallbackLetter => !string.IsNullOrEmpty(Letter)
+        ? Letter
+        : string.IsNullOrWhiteSpace(Name) ? null : Name.Trim()[..1].ToUpperInvariant();
+
     [Parameter] public int Size { get; set; } = 30;
     [Parameter] public string? IconUrl { get; set; }
     [Parameter] public string? Letter { get; set; }

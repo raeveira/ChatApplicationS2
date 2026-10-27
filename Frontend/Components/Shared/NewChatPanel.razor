@@ -3,46 +3,65 @@
 @inject CurrentUser CurrentUser
 @inject NavigationManager Navigation
 
-<div class="new-chat-panel">
-    <h4>Direct message</h4>
-    <form @onsubmit="StartDirectMessageAsync">
-        <input type="text" placeholder="Enter a username" @bind="username" @bind:event="oninput" />
-        <button type="submit">Open</button>
-    </form>
+<div class="modal-backdrop" @onclick="OnClose">
+    <div class="modal-box" @onclick:stopPropagation="true">
+        <h3>New chat</h3>
+        <p class="muted">Pick one friend for a private chat, or several for a group.</p>
 
-    <h4>New group</h4>
-    <form @onsubmit="CreateGroupAsync">
-        <input type="text" placeholder="Group name" @bind="groupName" @bind:event="oninput" />
-        @foreach (var friend in friends)
-        {
-            <label>
-                <input type="checkbox"
-                       checked="@selectedFriendIds.Contains(friend.UserId)"
-                       @onchange="args => ToggleFriend(friend.UserId, (bool)args.Value!)" />
-                @(friend.DisplayName ?? friend.Username)
-            </label>
-        }
-        @if (friends.Count == 0)
-        {
-            <p class="muted">Add friends to put them in a group.</p>
-        }
-        <button type="submit">Create group</button>
-    </form>
+        <input type="text" class="modal-search" placeholder="Search friends" @bind="search" @bind:event="oninput" />
 
-    @if (error is not null)
-    {
-        <p class="error-text">@error</p>
-    }
+        <div class="modal-friends">
+            @foreach (var friend in VisibleFriends)
+            {
+                <label class="modal-friend">
+                    <input type="checkbox"
+                           checked="@selectedFriendIds.Contains(friend.UserId)"
+                           @onchange="args => ToggleFriend(friend.UserId, (bool)args.Value!)" />
+                    @(friend.DisplayName ?? friend.Username)
+                </label>
+            }
+            @if (friends.Count == 0)
+            {
+                <p class="muted">Add friends first to start a chat.</p>
+            }
+            else if (!VisibleFriends.Any())
+            {
+                <p class="muted">No friends match your search.</p>
+            }
+        </div>
+
+        @if (selectedFriendIds.Count >= 2)
+        {
+            <input type="text" class="modal-search" placeholder="Group name (optional)" @bind="groupName" @bind:event="oninput" />
+        }
+
+        @if (error is not null)
+        {
+            <p class="error-text">@error</p>
+        }
+
+        <div class="modal-actions">
+            <button type="button" @onclick="OnClose">Cancel</button>
+            <button type="button" class="primary" disabled="@(selectedFriendIds.Count == 0)" @onclick="CreateChatAsync">
+                @(selectedFriendIds.Count >= 2 ? "Create group" : "Open chat")
+            </button>
+        </div>
+    </div>
 </div>
 
 @code {
     [Parameter] public EventCallback OnClose { get; set; }
 
-    private string username = string.Empty;
+    private string search = string.Empty;
     private string groupName = string.Empty;
     private string? error;
     private List<GetFriendDto> friends = [];
     private readonly HashSet<Guid> selectedFriendIds = [];
+
+    private IEnumerable<GetFriendDto> VisibleFriends => friends.Where(friend =>
+        string.IsNullOrWhiteSpace(search)
+        || friend.Username.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase)
+        || (friend.DisplayName?.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase) ?? false));
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,11 +76,15 @@
             selectedFriendIds.Remove(friendUserId);
     }
 
-    private async Task StartDirectMessageAsync()
+    private async Task CreateChatAsync()
     {
         try
         {
-            var chat = await ChatService.OpenPrivateChatByUsernameAsync(await CurrentUser.GetIdAsync(), username);
+            var currentUserId = await CurrentUser.GetIdAsync();
+            var chat = selectedFriendIds.Count == 1
+                ? await ChatService.OpenPrivateChatAsync(currentUserId, selectedFriendIds.First())
+                : await ChatService.CreateGroupChatAsync(currentUserId, GetGroupName(), selectedFriendIds);
+
             await OnClose.InvokeAsync();
             Navigation.NavigateTo($"/chat/{chat.Id}");
         }
@@ -71,17 +94,13 @@
         }
     }
 
-    private async Task CreateGroupAsync()
+    private string GetGroupName()
     {
-        try
-        {
-            var chat = await ChatService.CreateGroupChatAsync(await CurrentUser.GetIdAsync(), groupName, selectedFriendIds);
-            await OnClose.InvokeAsync();
-            Navigation.NavigateTo($"/chat/{chat.Id}");
-        }
-        catch (Exception exception)
-        {
-            error = ErrorMessage.For(exception);
-        }
+        if (!string.IsNullOrWhiteSpace(groupName))
+            return groupName.Trim();
+
+        return string.Join(", ", friends
+            .Where(friend => selectedFriendIds.Contains(friend.UserId))
+            .Select(friend => friend.DisplayName ?? friend.Username));
     }
 }

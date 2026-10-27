@@ -7,7 +7,7 @@
 
 <div class="app">
     <aside class="sidebar">
-        <NavLink class="side-button" href="" Match="NavLinkMatch.All" ActiveClass="active">👥 Friends</NavLink>
+        <NavLink class="side-button" href="" Match="NavLinkMatch.All" ActiveClass="active"><i class="bi bi-people-fill"></i> Friends</NavLink>
 
         <div class="side-section">
             <span>Direct Messages</span>
@@ -18,7 +18,7 @@
             @foreach (var chat in chats)
             {
                 <NavLink class="chat-item" href="@($"chat/{chat.ChatId}")" ActiveClass="active">
-                    <Avatar Size="16" IconUrl="@chat.IconUrl" Letter="@(chat.Type == EChatType.Group ? chat.Title[..1].ToUpperInvariant() : null)" />
+                    <Avatar Size="28" Color="#444" IconUrl="@chat.IconUrl" Name="@chat.Title" />
                     <span class="chat-item-text">
                         <span class="chat-item-title">@chat.Title</span>
                         <span class="chat-item-subtitle">@chat.Subtitle</span>
@@ -28,7 +28,7 @@
         </div>
 
         <a class="user-bar" href="account">
-            <Avatar Size="26" Color="black" IconUrl="@me?.IconUrl" />
+            <Avatar Size="30" Color="#444" IconUrl="@me?.IconUrl" Name="@me?.Username" />
             <span>@(me?.DisplayName ?? me?.Username)</span>
         </a>
 

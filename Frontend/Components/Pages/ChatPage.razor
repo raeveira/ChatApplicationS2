@@ -16,10 +16,10 @@
 else
 {
     <header class="content-header">
-        <Avatar Size="30" IconUrl="@summary.IconUrl" Letter="@(isGroup ? summary.Title[..1].ToUpperInvariant() : null)" />
+        <Avatar Size="32" Color="#444" IconUrl="@summary.IconUrl" Name="@summary.Title" />
         <span>@summary.Title</span>
         <span class="header-spacer"></span>
-        <button class="icon-button" title="Refresh" @onclick="RefreshAsync">⟳</button>
+        <button class="icon-button" title="Refresh" @onclick="RefreshAsync"><i class="bi bi-arrow-clockwise"></i></button>
     </header>
 
     <div class="chat-body">
@@ -29,7 +29,7 @@ else
                 {
                     var sender = members.FirstOrDefault(member => member.UserId == message.SentById);
                     <div class="message">
-                        <Avatar Size="32" IconUrl="@sender?.IconUrl" />
+                        <Avatar Size="36" Color="#444" IconUrl="@sender?.IconUrl" Name="@sender?.DisplayName" />
                         <div>
                             <div class="message-meta">
                                 <strong>@(sender?.DisplayName ?? "Unknown user")</strong>
@@ -49,7 +49,7 @@ else
             <form class="message-form" @onsubmit="SendMessageAsync">
                 <input type="text" placeholder="Message @@@(isGroup ? summary.Title : summary.Subtitle)"
                        @bind="newMessage" @bind:event="oninput" maxlength="@Message.MaxContentLength" />
-                <button type="submit" title="Send">➤</button>
+                <button type="submit" title="Send"><i class="bi bi-send-fill"></i></button>
             </form>
         </div>
 
@@ -60,7 +60,7 @@ else
                 @foreach (var member in members)
                 {
                     <div class="member">
-                        <Avatar Size="16" Color="#d0d0d0" IconUrl="@member.IconUrl" />
+                        <Avatar Size="24" Color="#444" IconUrl="@member.IconUrl" Name="@member.DisplayName" />
                         <span>@member.DisplayName</span>
                     </div>
                 }

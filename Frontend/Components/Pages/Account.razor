@@ -76,10 +76,19 @@
 
             <div class="account-row">
                 <span>Receive messages from</span>
-                <select value="@(user.AllowDirectMessagesFromEveryone ? "everyone" : "friends")" @onchange="SaveDirectMessagePolicyAsync">
-                    <option value="everyone">Everyone</option>
-                    <option value="friends">Friends only</option>
-                </select>
+                <div class="dropdown">
+                    <button type="button" class="dropdown-toggle" @onclick="() => policyOpen = !policyOpen">
+                        @(user.AllowDirectMessagesFromEveryone ? "Everyone" : "Friends only")
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                    @if (policyOpen)
+                    {
+                        <div class="dropdown-menu-box">
+                            <button type="button" class="@(user.AllowDirectMessagesFromEveryone ? "selected" : null)" @onclick="() => SaveDirectMessagePolicyAsync(true)">Everyone</button>
+                            <button type="button" class="@(!user.AllowDirectMessagesFromEveryone ? "selected" : null)" @onclick="() => SaveDirectMessagePolicyAsync(false)">Friends only</button>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
 
@@ -126,6 +135,7 @@
     private string newUsername = string.Empty;
     private string currentPassword = string.Empty;
     private string newPassword = string.Empty;
+    private bool policyOpen;
     private string? error;
     private string? success;
 
@@ -202,14 +212,14 @@
         }
     }
 
-    private async Task SaveDirectMessagePolicyAsync(ChangeEventArgs args)
+    private async Task SaveDirectMessagePolicyAsync(bool allowEveryone)
     {
+        policyOpen = false;
         error = null;
         success = null;
 
         try
         {
-            var allowEveryone = args.Value?.ToString() == "everyone";
             await UserService.SetAllowDirectMessagesFromEveryoneAsync(currentUserId, allowEveryone);
             user = await UserService.GetUserAsync(currentUserId);
             success = "Message setting updated.";

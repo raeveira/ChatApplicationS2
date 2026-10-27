@@ -9,7 +9,7 @@
 <PageTitle>Friends</PageTitle>
 
 <header class="content-header">
-    <span>👥 Friends</span>
+    <span><i class="bi bi-people-fill"></i> Friends</span>
     <div class="tabs">
         <button class="tab @(tab == FriendsTab.All ? "active" : "")" @onclick="() => ShowTabAsync(FriendsTab.All)">All</button>
         <button class="tab @(tab == FriendsTab.Pending ? "active" : "")" @onclick="() => ShowTabAsync(FriendsTab.Pending)">Pending</button>
@@ -31,7 +31,7 @@
     }
     else
     {
-        <input class="search-box" type="text" placeholder="🔍 Search" @bind="searchText" @bind:event="oninput" />
+        <input class="search-box" type="text" placeholder="Search" @bind="searchText" @bind:event="oninput" />
 
         @if (tab == FriendsTab.All)
         {
@@ -39,11 +39,11 @@
             @foreach (var friend in VisibleFriends)
             {
                 <div class="friend-row">
-                    <Avatar Size="26" IconUrl="@friend.IconUrl" />
+                    <Avatar Size="32" Color="#444" IconUrl="@friend.IconUrl" Name="@friend.Username" />
                     <span class="grow">@(friend.DisplayName ?? friend.Username) <span class="muted">@@@friend.Username</span></span>
                     <span class="actions">
-                        <button class="icon-button" title="Send message" @onclick="() => OpenChatAsync(friend.UserId)">💬</button>
-                        <button class="icon-button" title="Remove friend" @onclick="() => RemoveFriendAsync(friend.UserId)">✕</button>
+                        <button class="icon-button" title="Send message" @onclick="() => OpenChatAsync(friend.UserId)"><i class="bi bi-chat-dots-fill"></i></button>
+                        <button class="icon-button" title="Remove friend" @onclick="() => RemoveFriendAsync(friend.UserId)"><i class="bi bi-person-x-fill"></i></button>
                     </span>
                 </div>
             }
@@ -54,7 +54,7 @@
             @foreach (var request in VisibleRequests)
             {
                 <div class="friend-row">
-                    <Avatar Size="26" IconUrl="@request.IconUrl" />
+                    <Avatar Size="32" Color="#444" IconUrl="@request.IconUrl" Name="@request.Username" />
                     <span class="grow">
                         @(request.DisplayName ?? request.Username) <span class="muted">@@@request.Username</span>
                         <span class="muted">(@(request.IsIncoming ? "incoming" : "outgoing"))</span>
@@ -62,9 +62,9 @@
                     <span class="actions">
                         @if (request.IsIncoming)
                         {
-                            <button class="icon-button" title="Accept" @onclick="() => AcceptRequestAsync(request.UserId)">✓</button>
+                            <button class="icon-button" title="Accept" @onclick="() => AcceptRequestAsync(request.UserId)"><i class="bi bi-check-lg"></i></button>
                         }
-                        <button class="icon-button" title="@(request.IsIncoming ? "Decline" : "Cancel")" @onclick="() => RemoveRequestAsync(request.UserId)">✕</button>
+                        <button class="icon-button" title="@(request.IsIncoming ? "Decline" : "Cancel")" @onclick="() => RemoveRequestAsync(request.UserId)"><i class="bi bi-x-lg"></i></button>
                     </span>
                 </div>
             }
