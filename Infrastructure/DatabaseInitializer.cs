@@ -10,8 +10,6 @@ public class DatabaseInitializer(NpgsqlDataSource dataSource)
         await using var command = new NpgsqlCommand("SELECT 1", connection);
         await command.ExecuteScalarAsync(cancellationToken);
 
-        // Table/column creation scripts go here.
-
         // Create Enum Types
         command.CommandText = @"
             DO $$ BEGIN

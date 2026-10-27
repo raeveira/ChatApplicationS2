@@ -10,6 +10,7 @@ public interface IMessageRepository
         Guid chatId,
         int limit = 50,
         DateTime? before = null,
+        DateTime? after = null,
         CancellationToken cancellationToken = default);
     Task DeleteMessageAsync(Guid messageId, CancellationToken cancellationToken = default);
 }

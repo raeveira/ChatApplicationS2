@@ -63,6 +63,7 @@ namespace Infrastructure
             Guid chatId,
             int limit = 50,
             DateTime? before = null,
+            DateTime? after = null,
             CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -71,7 +72,9 @@ namespace Infrastructure
                     await using var command = new NpgsqlCommand(
                         $@"SELECT {SelectColumns}
                            FROM Messages
-                           WHERE SentInId = @ChatId AND (@Before IS NULL OR SentAt < @Before)
+                           WHERE SentInId = @ChatId
+                             AND (@Before IS NULL OR SentAt < @Before)
+                             AND (@After IS NULL OR SentAt > @After)
                            ORDER BY SentAt DESC
                            LIMIT @Limit",
                         connection);
@@ -79,6 +82,10 @@ namespace Infrastructure
                     command.Parameters.Add(new NpgsqlParameter("Before", NpgsqlTypes.NpgsqlDbType.Timestamp)
                     {
                         Value = (object?)before ?? DBNull.Value
+                    });
+                    command.Parameters.Add(new NpgsqlParameter("After", NpgsqlTypes.NpgsqlDbType.Timestamp)
+                    {
+                        Value = (object?)after ?? DBNull.Value
                     });
                     command.Parameters.AddWithValue("Limit", limit);
 
