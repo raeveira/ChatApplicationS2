@@ -97,6 +97,33 @@ namespace Infrastructure
                 cancellationToken);
         }
 
+        public Task<GetChatDto?> GetPrivateChatBetweenAsync(Guid firstUserId, Guid secondUserId, CancellationToken cancellationToken = default)
+        {
+            return _databaseConnection.WithConnectionAsync(
+                async (connection, ct) =>
+                {
+                    await using var command = new NpgsqlCommand(
+                        @"SELECT c.Id, c.Type::text, c.Name, c.CreatedAt
+                          FROM Chats c
+                          JOIN ChatMembers memberA ON memberA.ChatId = c.Id AND memberA.UserId = @FirstUserId
+                          JOIN ChatMembers memberB ON memberB.ChatId = c.Id AND memberB.UserId = @SecondUserId
+                          WHERE c.Type = 'private'
+                          LIMIT 1",
+                        connection);
+                    command.Parameters.AddWithValue("FirstUserId", firstUserId);
+                    command.Parameters.AddWithValue("SecondUserId", secondUserId);
+
+                    await using var reader = await command.ExecuteReaderAsync(ct);
+                    if (await reader.ReadAsync(ct))
+                    {
+                        return ReadChat(reader);
+                    }
+
+                    return null;
+                },
+                cancellationToken);
+        }
+
         public Task UpdateChatNameAsync(Guid chatId, UpdateChatNameDto updateChatNameDto, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(

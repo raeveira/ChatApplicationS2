@@ -10,6 +10,8 @@ public static class DependencyInjection
         services.AddScoped<AuthService>();
         services.AddScoped<ChatService>();
         services.AddScoped<MessageService>();
+        services.AddScoped<FriendService>();
+        services.AddScoped<UserService>();
 
         return services;
     }

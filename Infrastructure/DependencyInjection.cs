@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<IChatRepository, ChatRepository>();
         services.AddScoped<IChatMemberRepository, ChatMemberRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
+        services.AddScoped<IFriendshipRepository, FriendshipRepository>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         
         return services;

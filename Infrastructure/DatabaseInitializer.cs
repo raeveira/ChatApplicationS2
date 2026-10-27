@@ -23,6 +23,12 @@ public class DatabaseInitializer(NpgsqlDataSource dataSource)
             EXCEPTION
                 WHEN duplicate_object THEN null;
             END $$;
+
+            DO $$ BEGIN
+                CREATE TYPE friendship_status AS ENUM ('pending', 'accepted');
+            EXCEPTION
+                WHEN duplicate_object THEN null;
+            END $$;
         ";
         await command.ExecuteNonQueryAsync(cancellationToken);
 
@@ -35,9 +41,10 @@ public class DatabaseInitializer(NpgsqlDataSource dataSource)
                 PasswordHash TEXT NOT NULL,
                 IconUrl TEXT,
                 CreatedAt TIMESTAMP NOT NULL DEFAULT NOW(),
-                UpdatedAt TIMESTAMP NOT NULL DEFAULT NOW()
+                UpdatedAt TIMESTAMP NOT NULL DEFAULT NOW(),
+                AllowDirectMessagesFromEveryone BOOLEAN NOT NULL DEFAULT TRUE,
 
-                CONSTRAINT chk_username CHECK (Username = LOWER(Username))
+                CONSTRAINT chk_username CHECK (Username = LOWER(Username)),
                 CONSTRAINT chk_displayname CHECK (DisplayName = TRIM(DisplayName))
             );
         ";
@@ -58,8 +65,8 @@ public class DatabaseInitializer(NpgsqlDataSource dataSource)
         // ChatMembers table
         command.CommandText = @"
             CREATE TABLE IF NOT EXISTS ChatMembers (
-                ChatId UUID NOT NULL REFERENCES Chats(Id),
-                UserId UUID NOT NULL REFERENCES Users(Id),
+                ChatId UUID NOT NULL REFERENCES Chats(Id) ON DELETE CASCADE,
+                UserId UUID NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
                 Role chat_member_role NOT NULL,
                 JoinedAt TIMESTAMP NOT NULL DEFAULT NOW(),
                 PRIMARY KEY (ChatId, UserId)
@@ -71,10 +78,23 @@ public class DatabaseInitializer(NpgsqlDataSource dataSource)
         command.CommandText = @"
             CREATE TABLE IF NOT EXISTS Messages (
                 Id UUID PRIMARY KEY,
-                SentInId UUID NOT NULL REFERENCES Chats(Id),
-                SentById UUID NOT NULL REFERENCES Users(Id),
+                SentInId UUID NOT NULL REFERENCES Chats(Id) ON DELETE CASCADE,
+                SentById UUID NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
                 Content TEXT NOT NULL,
                 SentAt TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+        ";
+        await command.ExecuteNonQueryAsync(cancellationToken);
+
+        // Friendships table: one row per pair, the requester sent the request to the addressee.
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS Friendships (
+                RequesterId UUID NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+                AddresseeId UUID NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+                Status friendship_status NOT NULL,
+                CreatedAt TIMESTAMP NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (RequesterId, AddresseeId),
+                CHECK (RequesterId <> AddresseeId)
             );
         ";
         await command.ExecuteNonQueryAsync(cancellationToken);

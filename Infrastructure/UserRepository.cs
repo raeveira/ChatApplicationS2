@@ -85,7 +85,7 @@ namespace Infrastructure
                 async (connection, ct) =>
                 {
                     await using var command =
-                        new NpgsqlCommand("SELECT Id, Username, DisplayName, IconUrl, CreatedAt, UpdatedAt FROM Users WHERE Id = @Id", connection);
+                        new NpgsqlCommand("SELECT Id, Username, DisplayName, IconUrl, CreatedAt, UpdatedAt, AllowDirectMessagesFromEveryone FROM Users WHERE Id = @Id", connection);
                     command.Parameters.AddWithValue("Id", userId);
 
                     await using var reader = await command.ExecuteReaderAsync(ct);
@@ -98,7 +98,8 @@ namespace Infrastructure
                             DisplayName = reader.IsDBNull(2) ? null : reader.GetString(2),
                             IconUrl = reader.IsDBNull(3) ? null : reader.GetString(3),
                             CreatedAt = reader.GetDateTime(4),
-                            UpdatedAt = reader.GetDateTime(5)
+                            UpdatedAt = reader.GetDateTime(5),
+                            AllowDirectMessagesFromEveryone = reader.GetBoolean(6)
                         };
                     }
 
@@ -113,7 +114,7 @@ namespace Infrastructure
                 async (connection, ct) =>
                 {
                     await using var command =
-                        new NpgsqlCommand("SELECT Id, Username, DisplayName, IconUrl, CreatedAt, UpdatedAt FROM Users WHERE Username = @Username", connection);
+                        new NpgsqlCommand("SELECT Id, Username, DisplayName, IconUrl, CreatedAt, UpdatedAt, AllowDirectMessagesFromEveryone FROM Users WHERE Username = @Username", connection);
                     command.Parameters.AddWithValue("Username", username);
 
                     await using var reader = await command.ExecuteReaderAsync(ct);
@@ -126,7 +127,8 @@ namespace Infrastructure
                             DisplayName = reader.IsDBNull(2) ? null : reader.GetString(2),
                             IconUrl = reader.IsDBNull(3) ? null : reader.GetString(3),
                             CreatedAt = reader.GetDateTime(4),
-                            UpdatedAt = reader.GetDateTime(5)
+                            UpdatedAt = reader.GetDateTime(5),
+                            AllowDirectMessagesFromEveryone = reader.GetBoolean(6)
                         };
                     }
 
@@ -175,6 +177,21 @@ namespace Infrastructure
                     command.Parameters.AddWithValue("CreatedAt", user.CreatedAt);
                     command.Parameters.AddWithValue("UpdatedAt", user.UpdatedAt);
                     
+                    await command.ExecuteNonQueryAsync(ct);
+                },
+                cancellationToken);
+        }
+
+        public Task UpdateAllowDirectMessagesFromEveryoneAsync(Guid userId, bool allowDirectMessagesFromEveryone, CancellationToken cancellationToken = default)
+        {
+            return _databaseConnection.WithConnectionAsync(
+                async (connection, ct) =>
+                {
+                    await using var command =
+                        new NpgsqlCommand("UPDATE Users SET AllowDirectMessagesFromEveryone = @Allow WHERE Id = @Id", connection);
+                    command.Parameters.AddWithValue("Allow", allowDirectMessagesFromEveryone);
+                    command.Parameters.AddWithValue("Id", userId);
+
                     await command.ExecuteNonQueryAsync(ct);
                 },
                 cancellationToken);

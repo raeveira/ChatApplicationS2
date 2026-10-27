@@ -59,7 +59,7 @@ public class AuthService(IUserRepository userRepository, IPasswordHasher passwor
             ?? throw new InvalidCredentialsException();
     }
 
-    private static void ValidatePassword(string password)
+    public static void ValidatePassword(string password)
     {
         if (password is null || password.Length < MinPasswordLength || password.Length > MaxPasswordLength)
             throw new ArgumentException(

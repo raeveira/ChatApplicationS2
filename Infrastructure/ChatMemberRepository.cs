@@ -43,7 +43,7 @@ namespace Infrastructure
                 async (connection, ct) =>
                 {
                     await using var command = new NpgsqlCommand(
-                        "DELETE FROM ChatMembers WHERE ChatId = @ChatId AND UserId = @UserId AND Type = 'Group'",
+                        "DELETE FROM ChatMembers WHERE ChatId = @ChatId AND UserId = @UserId",
                         connection);
                     command.Parameters.AddWithValue("ChatId", chatId);
                     command.Parameters.AddWithValue("UserId", userId);

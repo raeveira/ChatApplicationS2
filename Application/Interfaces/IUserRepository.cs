@@ -13,4 +13,5 @@ public interface IUserRepository
     Task<GetUserLoginDto?> GetUserLoginAsync(string username, CancellationToken cancellationToken = default);
     Task CreateUserAsync(CreateUserDto user, CancellationToken cancellationToken = default);
     Task UpdateUserAsync(Guid userId, UpdateUserDto updateUserDto, CancellationToken cancellationToken = default);
+    Task UpdateAllowDirectMessagesFromEveryoneAsync(Guid userId, bool allowDirectMessagesFromEveryone, CancellationToken cancellationToken = default);
 }

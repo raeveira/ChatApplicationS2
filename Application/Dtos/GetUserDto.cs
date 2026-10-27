@@ -11,6 +11,7 @@ namespace Application.Dtos
         public string Username { get; set; }
         public string? DisplayName { get; set; }
         public string? IconUrl { get; set; }
+        public bool AllowDirectMessagesFromEveryone { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
