@@ -24,6 +24,7 @@ namespace Domain
             return new Friendship(requesterId, addresseeId, EFriendshipStatus.Pending, DateTime.UtcNow);
         }
 
+        // Restores a friendship from persisted data, such as a database record.
         public static Friendship Restore(Guid requesterId, Guid addresseeId, EFriendshipStatus status, DateTime createdAt)
         {
             return new Friendship(requesterId, addresseeId, status, createdAt);
