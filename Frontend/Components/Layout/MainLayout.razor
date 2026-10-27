@@ -1,0 +1,91 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ChatService ChatService
+@inject UserService UserService
+@inject CurrentUser CurrentUser
+@inject NavigationManager Navigation
+
+<div class="app">
+    <aside class="sidebar">
+        <NavLink class="side-button" href="" Match="NavLinkMatch.All" ActiveClass="active">👥 Friends</NavLink>
+
+        <div class="side-section">
+            <span>Direct Messages</span>
+            <button type="button" title="New message or group" @onclick="ToggleNewChatPanel">+</button>
+        </div>
+
+        <div class="chat-list">
+            @foreach (var chat in chats)
+            {
+                <NavLink class="chat-item" href="@($"chat/{chat.ChatId}")" ActiveClass="active">
+                    <Avatar Size="16" IconUrl="@chat.IconUrl" Letter="@(chat.Type == EChatType.Group ? chat.Title[..1].ToUpperInvariant() : null)" />
+                    <span class="chat-item-text">
+                        <span class="chat-item-title">@chat.Title</span>
+                        <span class="chat-item-subtitle">@chat.Subtitle</span>
+                    </span>
+                </NavLink>
+            }
+        </div>
+
+        <a class="user-bar" href="account">
+            <Avatar Size="26" Color="black" IconUrl="@me?.IconUrl" />
+            <span>@(me?.DisplayName ?? me?.Username)</span>
+        </a>
+
+        @if (showNewChatPanel)
+        {
+            <NewChatPanel OnClose="CloseNewChatPanel" />
+        }
+    </aside>
+
+    <main class="content">
+        @Body
+    </main>
+</div>
+
+@code {
+    private List<GetChatSummaryDto> chats = [];
+    private GetUserDto? me;
+    private bool showNewChatPanel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        await LoadSidebarAsync();
+    }
+
+    private async Task LoadSidebarAsync()
+    {
+        var currentUserId = await CurrentUser.GetIdAsync();
+
+        try
+        {
+            me = await UserService.GetUserAsync(currentUserId);
+        }
+        catch (UserNotFoundException)
+        {
+            // The cookie belongs to an account that no longer exists (for example after a database reset).
+            Navigation.NavigateTo("/auth/session-expired", forceLoad: true);
+            return;
+        }
+
+        chats = await ChatService.GetMyChatSummariesAsync(currentUserId);
+    }
+
+    // Reload the sidebar on every navigation so new chats show up.
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        showNewChatPanel = false;
+        _ = InvokeAsync(async () =>
+        {
+            await LoadSidebarAsync();
+            StateHasChanged();
+        });
+    }
+
+    private void ToggleNewChatPanel() => showNewChatPanel = !showNewChatPanel;
+
+    private void CloseNewChatPanel() => showNewChatPanel = false;
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+}

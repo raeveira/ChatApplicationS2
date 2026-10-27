@@ -1,0 +1,87 @@
+@inject ChatService ChatService
+@inject FriendService FriendService
+@inject CurrentUser CurrentUser
+@inject NavigationManager Navigation
+
+<div class="new-chat-panel">
+    <h4>Direct message</h4>
+    <form @onsubmit="StartDirectMessageAsync">
+        <input type="text" placeholder="Enter a username" @bind="username" @bind:event="oninput" />
+        <button type="submit">Open</button>
+    </form>
+
+    <h4>New group</h4>
+    <form @onsubmit="CreateGroupAsync">
+        <input type="text" placeholder="Group name" @bind="groupName" @bind:event="oninput" />
+        @foreach (var friend in friends)
+        {
+            <label>
+                <input type="checkbox"
+                       checked="@selectedFriendIds.Contains(friend.UserId)"
+                       @onchange="args => ToggleFriend(friend.UserId, (bool)args.Value!)" />
+                @(friend.DisplayName ?? friend.Username)
+            </label>
+        }
+        @if (friends.Count == 0)
+        {
+            <p class="muted">Add friends to put them in a group.</p>
+        }
+        <button type="submit">Create group</button>
+    </form>
+
+    @if (error is not null)
+    {
+        <p class="error-text">@error</p>
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string username = string.Empty;
+    private string groupName = string.Empty;
+    private string? error;
+    private List<GetFriendDto> friends = [];
+    private readonly HashSet<Guid> selectedFriendIds = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        friends = await FriendService.GetFriendsAsync(await CurrentUser.GetIdAsync());
+    }
+
+    private void ToggleFriend(Guid friendUserId, bool isSelected)
+    {
+        if (isSelected)
+            selectedFriendIds.Add(friendUserId);
+        else
+            selectedFriendIds.Remove(friendUserId);
+    }
+
+    private async Task StartDirectMessageAsync()
+    {
+        try
+        {
+            var chat = await ChatService.OpenPrivateChatByUsernameAsync(await CurrentUser.GetIdAsync(), username);
+            await OnClose.InvokeAsync();
+            Navigation.NavigateTo($"/chat/{chat.Id}");
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+        }
+    }
+
+    private async Task CreateGroupAsync()
+    {
+        try
+        {
+            var chat = await ChatService.CreateGroupChatAsync(await CurrentUser.GetIdAsync(), groupName, selectedFriendIds);
+            await OnClose.InvokeAsync();
+            Navigation.NavigateTo($"/chat/{chat.Id}");
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+        }
+    }
+}

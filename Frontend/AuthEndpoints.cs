@@ -56,6 +56,40 @@ public static class AuthEndpoints
             return Results.Redirect("/login");
         });
 
+        // The password is checked again so a stolen session can't delete the account.
+        app.MapPost("/auth/delete-account", async (
+            HttpContext context,
+            UserService userService,
+            [FromForm] string? password) =>
+        {
+            var userIdText = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdText, out var userId))
+                return Results.Redirect("/login");
+
+            try
+            {
+                await userService.DeleteAccountAsync(userId, password ?? string.Empty, context.RequestAborted);
+            }
+            catch (IncorrectPasswordException)
+            {
+                return Results.Redirect("/account?error=password");
+            }
+            catch (Exception)
+            {
+                return Results.Redirect("/account?error=failed");
+            }
+
+            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Results.Redirect("/login");
+        }).RequireAuthorization();
+
+        // Used when the cookie belongs to an account that no longer exists (for example after a database reset).
+        app.MapGet("/auth/session-expired", async (HttpContext context) =>
+        {
+            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Results.Redirect("/login");
+        });
+
         return app;
     }
 }

@@ -1,0 +1,218 @@
+@page "/chat/{ChatId:guid}"
+@layout MainLayout
+@attribute [Authorize]
+@implements IAsyncDisposable
+@inject ChatService ChatService
+@inject MessageService MessageService
+@inject CurrentUser CurrentUser
+@inject IJSRuntime JS
+
+<PageTitle>@(summary?.Title ?? "Chat")</PageTitle>
+
+@if (summary is null)
+{
+    <header class="content-header"><span class="error-text">@(error ?? "Loading...")</span></header>
+}
+else
+{
+    <header class="content-header">
+        <Avatar Size="30" IconUrl="@summary.IconUrl" Letter="@(isGroup ? summary.Title[..1].ToUpperInvariant() : null)" />
+        <span>@summary.Title</span>
+        <span class="header-spacer"></span>
+        <button class="icon-button" title="Refresh" @onclick="RefreshAsync">⟳</button>
+    </header>
+
+    <div class="chat-body">
+        <div class="chat-main">
+            <div class="messages" id="messages">
+                @foreach (var message in messages)
+                {
+                    var sender = members.FirstOrDefault(member => member.UserId == message.SentById);
+                    <div class="message">
+                        <Avatar Size="32" IconUrl="@sender?.IconUrl" />
+                        <div>
+                            <div class="message-meta">
+                                <strong>@(sender?.DisplayName ?? "Unknown user")</strong>
+                                <span class="message-time">@FormatTime(message.SentAt)</span>
+                            </div>
+                            <div class="message-content">@message.Content</div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (error is not null)
+            {
+                <p class="error-text" style="margin: 0 12px">@error</p>
+            }
+
+            <form class="message-form" @onsubmit="SendMessageAsync">
+                <input type="text" placeholder="Message @@@(isGroup ? summary.Title : summary.Subtitle)"
+                       @bind="newMessage" @bind:event="oninput" maxlength="@Message.MaxContentLength" />
+                <button type="submit" title="Send">➤</button>
+            </form>
+        </div>
+
+        @if (isGroup)
+        {
+            <aside class="members-panel">
+                <h3>Members</h3>
+                @foreach (var member in members)
+                {
+                    <div class="member">
+                        <Avatar Size="16" Color="#d0d0d0" IconUrl="@member.IconUrl" />
+                        <span>@member.DisplayName</span>
+                    </div>
+                }
+            </aside>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid ChatId { get; set; }
+
+    private GetChatSummaryDto? summary;
+    private List<GetChatMemberProfileDto> members = [];
+    private List<GetMessageDto> messages = [];
+    private string newMessage = string.Empty;
+    private string? error;
+    private Guid currentUserId;
+    private Guid loadedChatId;
+    private bool shouldScrollToBottom;
+    private bool pollingStarted;
+    private readonly CancellationTokenSource pollingCancellation = new();
+
+    private bool isGroup => summary?.Type == EChatType.Group;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ChatId == loadedChatId)
+            return;
+
+        loadedChatId = ChatId;
+        await LoadChatAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!pollingStarted)
+        {
+            pollingStarted = true;
+            _ = PollForNewMessagesAsync(pollingCancellation.Token);
+        }
+
+        if (shouldScrollToBottom)
+        {
+            shouldScrollToBottom = false;
+            await JS.InvokeVoidAsync("scrollToBottom", "messages");
+        }
+    }
+
+    private async Task LoadChatAsync()
+    {
+        summary = null;
+        members = [];
+        messages = [];
+        error = null;
+
+        try
+        {
+            currentUserId = await CurrentUser.GetIdAsync();
+            summary = await ChatService.GetChatSummaryAsync(currentUserId, ChatId);
+            members = await ChatService.GetMemberProfilesAsync(currentUserId, ChatId);
+            messages = await MessageService.GetMessagesAsync(currentUserId, ChatId);
+            shouldScrollToBottom = true;
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+        }
+    }
+
+    // Fetches only the messages that are newer than the last one we already have.
+    private async Task RefreshAsync()
+    {
+        if (summary is null)
+            return;
+
+        var chatIdAtStart = ChatId;
+        var lastSentAt = messages.Count > 0 ? messages[^1].SentAt : (DateTime?)null;
+
+        try
+        {
+            var newMessages = await MessageService.GetMessagesAsync(currentUserId, chatIdAtStart, onlyNewerThan: lastSentAt);
+
+            // The user may have opened another chat while we were waiting.
+            if (chatIdAtStart != ChatId)
+                return;
+
+            foreach (var newMessage in newMessages.Where(newMessage => messages.All(message => message.Id != newMessage.Id)))
+            {
+                messages.Add(newMessage);
+                shouldScrollToBottom = true;
+            }
+
+            // A new member may have joined, so show unknown senders.
+            if (messages.Any(message => members.All(member => member.UserId != message.SentById)))
+                members = await ChatService.GetMemberProfilesAsync(currentUserId, chatIdAtStart);
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+        }
+    }
+
+    private async Task SendMessageAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newMessage))
+            return;
+
+        error = null;
+
+        try
+        {
+            await MessageService.SendMessageAsync(currentUserId, ChatId, newMessage);
+            newMessage = string.Empty;
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+            return;
+        }
+
+        await RefreshAsync();
+    }
+
+    private async Task PollForNewMessagesAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                await InvokeAsync(async () =>
+                {
+                    await RefreshAsync();
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The page was closed.
+        }
+    }
+
+    // Times are stored in UTC.
+    private static string FormatTime(DateTime sentAt) =>
+        DateTime.SpecifyKind(sentAt, DateTimeKind.Utc).ToLocalTime().ToString("dd-MM-yyyy HH:mm");
+
+    public ValueTask DisposeAsync()
+    {
+        pollingCancellation.Cancel();
+        pollingCancellation.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

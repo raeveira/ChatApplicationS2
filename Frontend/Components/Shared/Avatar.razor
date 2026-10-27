@@ -1,0 +1,17 @@
+<div class="avatar" style="width:@(Size)px;height:@(Size)px;font-size:@(Size / 2)px;background:@Color">
+    @if (!string.IsNullOrWhiteSpace(IconUrl))
+    {
+        <img src="@IconUrl" alt="" />
+    }
+    else if (!string.IsNullOrEmpty(Letter))
+    {
+        @Letter
+    }
+</div>
+
+@code {
+    [Parameter] public int Size { get; set; } = 30;
+    [Parameter] public string? IconUrl { get; set; }
+    [Parameter] public string? Letter { get; set; }
+    [Parameter] public string Color { get; set; } = "red";
+}

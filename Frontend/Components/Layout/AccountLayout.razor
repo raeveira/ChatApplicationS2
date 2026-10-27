@@ -1,0 +1,44 @@
+@inherits LayoutComponentBase
+@inject UserService UserService
+@inject CurrentUser CurrentUser
+@inject NavigationManager Navigation
+
+<div class="account-shell">
+    <div class="account-window">
+        <aside class="account-sidebar">
+            <div class="account-profile">
+                <Avatar Size="30" IconUrl="@me?.IconUrl" />
+                <div>
+                    @(me?.DisplayName ?? me?.Username)
+                    <small><a href="">← Back to chats</a></small>
+                </div>
+            </div>
+
+            <form class="logout" method="post" action="/auth/logout">
+                <AntiforgeryToken />
+                <button type="submit">⎋ Log Out</button>
+            </form>
+        </aside>
+
+        <div class="account-main">
+            <div class="account-title">Account</div>
+            @Body
+        </div>
+    </div>
+</div>
+
+@code {
+    private GetUserDto? me;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            me = await UserService.GetUserAsync(await CurrentUser.GetIdAsync());
+        }
+        catch (UserNotFoundException)
+        {
+            Navigation.NavigateTo("/auth/session-expired", forceLoad: true);
+        }
+    }
+}

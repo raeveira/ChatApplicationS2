@@ -1,0 +1,222 @@
+@page "/account"
+@layout AccountLayout
+@attribute [Authorize]
+@inject UserService UserService
+@inject CurrentUser CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>Account</PageTitle>
+
+@if (user is not null)
+{
+    <div class="account-content">
+        <h2>Account Info</h2>
+
+        @if (editing == "displayName")
+        {
+            <form class="inline-edit" @onsubmit="SaveDisplayNameAsync">
+                <label>Display Name</label>
+                <input type="text" @bind="newDisplayName" @bind:event="oninput" />
+                <div class="buttons">
+                    <button type="submit" class="edit-button">Save</button>
+                    <button type="button" class="edit-button" @onclick="CancelEdit">Cancel</button>
+                </div>
+            </form>
+        }
+        else
+        {
+            <div class="account-row">
+                <span>Display Name</span>
+                <span class="right"><span class="value">@(user.DisplayName ?? user.Username)</span>
+                    <button class="edit-button" @onclick='() => StartEdit("displayName")'>Edit</button></span>
+            </div>
+        }
+
+        @if (editing == "username")
+        {
+            <form class="inline-edit" @onsubmit="SaveUsernameAsync">
+                <label>Username</label>
+                <input type="text" @bind="newUsername" @bind:event="oninput" />
+                <div class="buttons">
+                    <button type="submit" class="edit-button">Save</button>
+                    <button type="button" class="edit-button" @onclick="CancelEdit">Cancel</button>
+                </div>
+            </form>
+        }
+        else
+        {
+            <div class="account-row">
+                <span>Username</span>
+                <span class="right"><span class="value">@user.Username</span>
+                    <button class="edit-button" @onclick='() => StartEdit("username")'>Edit</button></span>
+            </div>
+        }
+
+        <div class="account-section">
+            <h2>Password &amp; Security</h2>
+
+            @if (editing == "password")
+            {
+                <form class="inline-edit" @onsubmit="SavePasswordAsync">
+                    <input type="password" placeholder="Current password" autocomplete="current-password" @bind="currentPassword" @bind:event="oninput" />
+                    <input type="password" placeholder="New password" autocomplete="new-password" @bind="newPassword" @bind:event="oninput" />
+                    <div class="buttons">
+                        <button type="submit" class="edit-button">Save</button>
+                        <button type="button" class="edit-button" @onclick="CancelEdit">Cancel</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="account-row">
+                    <span>Password</span>
+                    <button class="edit-button" @onclick='() => StartEdit("password")'>Edit</button>
+                </div>
+            }
+
+            <div class="account-row">
+                <span>Receive messages from</span>
+                <select value="@(user.AllowDirectMessagesFromEveryone ? "everyone" : "friends")" @onchange="SaveDirectMessagePolicyAsync">
+                    <option value="everyone">Everyone</option>
+                    <option value="friends">Friends only</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="account-section">
+            @if (editing == "delete")
+            {
+                <form class="inline-edit" method="post" action="/auth/delete-account">
+                    <AntiforgeryToken />
+                    <label>This permanently deletes your account. Enter your password to confirm.</label>
+                    <input type="password" name="password" placeholder="Password" autocomplete="current-password" />
+                    <div class="buttons">
+                        <button type="submit" class="delete-button">Delete Account</button>
+                        <button type="button" class="edit-button" @onclick="CancelEdit">Cancel</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="account-row">
+                    <span>Close your account<br /><small class="muted">Permanently delete your account</small></span>
+                    <button class="delete-button" @onclick='() => StartEdit("delete")'>Delete Account</button>
+                </div>
+            }
+        </div>
+
+        @if (error is not null)
+        {
+            <p class="error-text">@error</p>
+        }
+        @if (success is not null)
+        {
+            <p class="success-text">@success</p>
+        }
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+
+    private GetUserDto? user;
+    private Guid currentUserId;
+    private string? editing;
+    private string newDisplayName = string.Empty;
+    private string newUsername = string.Empty;
+    private string currentPassword = string.Empty;
+    private string newPassword = string.Empty;
+    private string? error;
+    private string? success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUserId = await CurrentUser.GetIdAsync();
+        user = await UserService.GetUserAsync(currentUserId);
+
+        if (Error == "password")
+        {
+            error = "The password is incorrect.";
+        }
+        else if (Error is not null)
+        {
+            error = "Something went wrong. Please try again.";
+        }
+    }
+
+    private void StartEdit(string field)
+    {
+        editing = field;
+        error = null;
+        success = null;
+        newDisplayName = user?.DisplayName ?? user?.Username ?? string.Empty;
+        newUsername = user?.Username ?? string.Empty;
+        currentPassword = string.Empty;
+        newPassword = string.Empty;
+    }
+
+    private void CancelEdit() => editing = null;
+
+    // Runs a save action, then reloads the page so the name in the sidebar is up to date.
+    private async Task SaveAsync(Func<Task> action, string successMessage)
+    {
+        error = null;
+        success = null;
+
+        try
+        {
+            await action();
+            editing = null;
+            success = successMessage;
+            user = await UserService.GetUserAsync(currentUserId);
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+            return;
+        }
+
+        Navigation.NavigateTo("/account", forceLoad: true);
+    }
+
+    private Task SaveDisplayNameAsync() =>
+        SaveAsync(() => UserService.ChangeDisplayNameAsync(currentUserId, newDisplayName), "Display name updated.");
+
+    private Task SaveUsernameAsync() =>
+        SaveAsync(() => UserService.ChangeUsernameAsync(currentUserId, newUsername), "Username updated.");
+
+    private async Task SavePasswordAsync()
+    {
+        error = null;
+        success = null;
+
+        try
+        {
+            await UserService.ChangePasswordAsync(currentUserId, currentPassword, newPassword);
+            editing = null;
+            success = "Password updated.";
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+        }
+    }
+
+    private async Task SaveDirectMessagePolicyAsync(ChangeEventArgs args)
+    {
+        error = null;
+        success = null;
+
+        try
+        {
+            var allowEveryone = args.Value?.ToString() == "everyone";
+            await UserService.SetAllowDirectMessagesFromEveryoneAsync(currentUserId, allowEveryone);
+            user = await UserService.GetUserAsync(currentUserId);
+            success = "Message setting updated.";
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+        }
+    }
+}

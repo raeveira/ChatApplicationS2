@@ -1,0 +1,174 @@
+@page "/"
+@layout MainLayout
+@attribute [Authorize]
+@inject FriendService FriendService
+@inject ChatService ChatService
+@inject CurrentUser CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>Friends</PageTitle>
+
+<header class="content-header">
+    <span>👥 Friends</span>
+    <div class="tabs">
+        <button class="tab @(tab == FriendsTab.All ? "active" : "")" @onclick="() => ShowTabAsync(FriendsTab.All)">All</button>
+        <button class="tab @(tab == FriendsTab.Pending ? "active" : "")" @onclick="() => ShowTabAsync(FriendsTab.Pending)">Pending</button>
+        <button class="tab add @(tab == FriendsTab.AddFriend ? "active" : "")" @onclick="() => ShowTabAsync(FriendsTab.AddFriend)">Add Friend</button>
+    </div>
+</header>
+
+<div class="friends-body">
+    @if (tab == FriendsTab.AddFriend)
+    {
+        <div class="add-friend">
+            <h2>Add Friend</h2>
+            <p>You can add friends with their username.</p>
+            <form @onsubmit="SendFriendRequestAsync">
+                <input type="text" placeholder="Enter a username" @bind="usernameToAdd" @bind:event="oninput" />
+                <button type="submit">Send Friend Request</button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <input class="search-box" type="text" placeholder="🔍 Search" @bind="searchText" @bind:event="oninput" />
+
+        @if (tab == FriendsTab.All)
+        {
+            <div class="list-label">All</div>
+            @foreach (var friend in VisibleFriends)
+            {
+                <div class="friend-row">
+                    <Avatar Size="26" IconUrl="@friend.IconUrl" />
+                    <span class="grow">@(friend.DisplayName ?? friend.Username) <span class="muted">@@@friend.Username</span></span>
+                    <span class="actions">
+                        <button class="icon-button" title="Send message" @onclick="() => OpenChatAsync(friend.UserId)">💬</button>
+                        <button class="icon-button" title="Remove friend" @onclick="() => RemoveFriendAsync(friend.UserId)">✕</button>
+                    </span>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="list-label">Pending</div>
+            @foreach (var request in VisibleRequests)
+            {
+                <div class="friend-row">
+                    <Avatar Size="26" IconUrl="@request.IconUrl" />
+                    <span class="grow">
+                        @(request.DisplayName ?? request.Username) <span class="muted">@@@request.Username</span>
+                        <span class="muted">(@(request.IsIncoming ? "incoming" : "outgoing"))</span>
+                    </span>
+                    <span class="actions">
+                        @if (request.IsIncoming)
+                        {
+                            <button class="icon-button" title="Accept" @onclick="() => AcceptRequestAsync(request.UserId)">✓</button>
+                        }
+                        <button class="icon-button" title="@(request.IsIncoming ? "Decline" : "Cancel")" @onclick="() => RemoveRequestAsync(request.UserId)">✕</button>
+                    </span>
+                </div>
+            }
+        }
+    }
+
+    @if (error is not null)
+    {
+        <p class="error-text">@error</p>
+    }
+    @if (success is not null)
+    {
+        <p class="success-text">@success</p>
+    }
+</div>
+
+@code {
+    private enum FriendsTab { All, Pending, AddFriend }
+
+    private FriendsTab tab = FriendsTab.All;
+    private List<GetFriendDto> friends = [];
+    private List<GetFriendRequestDto> requests = [];
+    private string searchText = string.Empty;
+    private string usernameToAdd = string.Empty;
+    private string? error;
+    private string? success;
+
+    private IEnumerable<GetFriendDto> VisibleFriends => friends.Where(friend =>
+        Matches(friend.DisplayName, friend.Username));
+
+    private IEnumerable<GetFriendRequestDto> VisibleRequests => requests.Where(request =>
+        Matches(request.DisplayName, request.Username));
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private bool Matches(string? displayName, string username)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return true;
+
+        return username.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+               || (displayName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private async Task LoadAsync()
+    {
+        var currentUserId = await CurrentUser.GetIdAsync();
+        friends = await FriendService.GetFriendsAsync(currentUserId);
+        requests = await FriendService.GetPendingRequestsAsync(currentUserId);
+    }
+
+    private async Task ShowTabAsync(FriendsTab newTab)
+    {
+        tab = newTab;
+        error = null;
+        success = null;
+        searchText = string.Empty;
+        await LoadAsync();
+    }
+
+    // Runs a friend action, shows its error if it fails, and reloads the lists.
+    private async Task RunAsync(Func<Guid, Task> action)
+    {
+        error = null;
+        success = null;
+
+        try
+        {
+            await action(await CurrentUser.GetIdAsync());
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+        }
+
+        await LoadAsync();
+    }
+
+    private Task SendFriendRequestAsync() => RunAsync(async currentUserId =>
+    {
+        await FriendService.SendFriendRequestAsync(currentUserId, usernameToAdd);
+        success = $"Friend request sent to {usernameToAdd.Trim()}.";
+        usernameToAdd = string.Empty;
+    });
+
+    private Task AcceptRequestAsync(Guid requesterUserId) =>
+        RunAsync(currentUserId => FriendService.AcceptFriendRequestAsync(currentUserId, requesterUserId));
+
+    private Task RemoveRequestAsync(Guid otherUserId) =>
+        RunAsync(currentUserId => FriendService.RemoveFriendRequestAsync(currentUserId, otherUserId));
+
+    private Task RemoveFriendAsync(Guid friendUserId) =>
+        RunAsync(currentUserId => FriendService.RemoveFriendAsync(currentUserId, friendUserId));
+
+    private async Task OpenChatAsync(Guid friendUserId)
+    {
+        try
+        {
+            var chat = await ChatService.OpenPrivateChatAsync(await CurrentUser.GetIdAsync(), friendUserId);
+            Navigation.NavigateTo($"/chat/{chat.Id}");
+        }
+        catch (Exception exception)
+        {
+            error = ErrorMessage.For(exception);
+        }
+    }
+}
