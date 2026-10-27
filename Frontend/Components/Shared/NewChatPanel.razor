@@ -13,11 +13,16 @@
         <div class="modal-friends">
             @foreach (var friend in VisibleFriends)
             {
-                <label class="modal-friend">
+                <label class="modal-friend @(selectedFriendIds.Contains(friend.UserId) ? "selected" : null)">
+                    <Avatar Size="34" Color="#444" IconUrl="@friend.IconUrl" Name="@friend.Username" />
+                    <span class="modal-friend-text">
+                        <span class="modal-friend-name">@(friend.DisplayName ?? friend.Username)</span>
+                        <span class="modal-friend-username">@@@friend.Username</span>
+                    </span>
                     <input type="checkbox"
                            checked="@selectedFriendIds.Contains(friend.UserId)"
                            @onchange="args => ToggleFriend(friend.UserId, (bool)args.Value!)" />
-                    @(friend.DisplayName ?? friend.Username)
+                    <span class="modal-check"><i class="bi bi-check-lg"></i></span>
                 </label>
             }
             @if (friends.Count == 0)
