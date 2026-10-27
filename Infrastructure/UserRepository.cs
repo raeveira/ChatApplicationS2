@@ -176,7 +176,6 @@ namespace Infrastructure
                     command.Parameters.AddWithValue("IconUrl", (object?)user.IconUrl ?? DBNull.Value);
                     command.Parameters.AddWithValue("CreatedAt", user.CreatedAt);
                     command.Parameters.AddWithValue("UpdatedAt", user.UpdatedAt);
-                    
                     await command.ExecuteNonQueryAsync(ct);
                 },
                 cancellationToken);
