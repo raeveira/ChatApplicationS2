@@ -2,8 +2,9 @@ using Application.Dtos;
 using Application.Interfaces;
 using Domain;
 using Npgsql;
+using Infrastructure.Database;
 
-namespace Infrastructure
+namespace Infrastructure.Repositories
 {
     public class FriendshipRepository : IFriendshipRepository
     {

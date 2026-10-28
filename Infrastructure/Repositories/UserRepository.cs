@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 using Npgsql;
 using Application.Dtos;
 using Application.Interfaces;
+using Infrastructure.Database;
 
-namespace Infrastructure
+namespace Infrastructure.Repositories
 {
     public class UserRepository : IUserRepository
     {

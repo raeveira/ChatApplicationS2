@@ -1,6 +1,6 @@
 using Npgsql;
 
-namespace Infrastructure;
+namespace Infrastructure.Database;
 
 public class DatabaseInitializer(NpgsqlDataSource dataSource)
 {

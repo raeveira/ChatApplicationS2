@@ -1,5 +1,7 @@
 using Application.Interfaces;
+using Infrastructure.Repositories;
 using Infrastructure.Security;
+using Infrastructure.Database;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
