@@ -9,6 +9,7 @@ namespace Infrastructure;
 
 public static class DependencyInjection
 {
+    // Extension method to add infrastructure services to the DI container
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.AddSingleton(new NpgsqlDataSourceBuilder(connectionString).Build());
