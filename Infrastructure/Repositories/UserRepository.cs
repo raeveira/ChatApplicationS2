@@ -28,7 +28,7 @@ namespace Infrastructure.Repositories
                         new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM Users WHERE Id = @Id)", connection);
                     command.Parameters.AddWithValue("Id", userId);
 
-                    return (bool)await command.ExecuteScalarAsync(ct);
+                    return (bool)(await command.ExecuteScalarAsync(ct))!;
                 },
                 cancellationToken);
         }

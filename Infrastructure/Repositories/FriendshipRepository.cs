@@ -15,6 +15,7 @@ namespace Infrastructure.Repositories
             _databaseConnection = databaseConnection;
         }
 
+        // Creates a new friendship record in the database.
         public Task CreateFriendshipAsync(CreateFriendshipDto friendship, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -33,6 +34,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Retrieves a friendship record between two users, if it exists.
         public Task<GetFriendshipDto?> GetFriendshipBetweenAsync(Guid firstUserId, Guid secondUserId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -64,6 +66,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Accepts a pending friendship request.
         public Task AcceptFriendshipAsync(Guid requesterId, Guid addresseeId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -80,6 +83,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Deletes a friendship record between two users, if it exists.
         public Task DeleteFriendshipBetweenAsync(Guid firstUserId, Guid secondUserId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -98,18 +102,32 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Retrieves all friends of a specific user.
         public Task<List<GetFriendDto>> GetFriendsAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
                     await using var command = new NpgsqlCommand(
-                        @"SELECT u.Id, u.Username, u.DisplayName, u.IconUrl
-                          FROM Friendships f
-                          JOIN Users u ON u.Id = CASE WHEN f.RequesterId = @UserId THEN f.AddresseeId ELSE f.RequesterId END
-                          WHERE f.Status = 'accepted' AND (f.RequesterId = @UserId OR f.AddresseeId = @UserId)
-                          ORDER BY u.DisplayName",
-                        connection);
+                        @"SELECT
+                            Friend.Id,
+                            Friend.Username,
+                            Friend.DisplayName,
+                            Friend.IconUrl
+                        FROM Friendships AS Friendship
+                        JOIN Users AS Friend
+                            ON Friend.Id = CASE
+                                WHEN Friendship.RequesterId = @UserId
+                                    THEN Friendship.AddresseeId
+                                ELSE Friendship.RequesterId
+                            END
+                        WHERE Friendship.Status = 'accepted'
+                            AND (
+                                Friendship.RequesterId = @UserId
+                                OR Friendship.AddresseeId = @UserId
+                            )
+                        ORDER BY Friend.DisplayName",
+                    connection);
                     command.Parameters.AddWithValue("UserId", userId);
 
                     var friends = new List<GetFriendDto>();
@@ -130,18 +148,33 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Get all the pending friend requests for a user
         public Task<List<GetFriendRequestDto>> GetPendingRequestsAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
                     await using var command = new NpgsqlCommand(
-                        @"SELECT u.Id, u.Username, u.DisplayName, u.IconUrl, (f.AddresseeId = @UserId) AS IsIncoming
-                          FROM Friendships f
-                          JOIN Users u ON u.Id = CASE WHEN f.RequesterId = @UserId THEN f.AddresseeId ELSE f.RequesterId END
-                          WHERE f.Status = 'pending' AND (f.RequesterId = @UserId OR f.AddresseeId = @UserId)
-                          ORDER BY f.CreatedAt DESC",
-                        connection);
+                        @"SELECT
+                            Friend.Id,
+                            Friend.Username,
+                            Friend.DisplayName,
+                            Friend.IconUrl,
+                            (Friendship.AddresseeId = @UserId) AS IsIncoming
+                        FROM Friendships AS Friendship
+                        JOIN Users AS Friend
+                            ON Friend.Id = CASE
+                                WHEN Friendship.RequesterId = @UserId
+                                    THEN Friendship.AddresseeId
+                                ELSE Friendship.RequesterId
+                            END
+                        WHERE Friendship.Status = 'pending'
+                            AND (
+                                Friendship.RequesterId = @UserId
+                                OR Friendship.AddresseeId = @UserId
+                            )
+                        ORDER BY Friendship.CreatedAt DESC",
+                    connection);
                     command.Parameters.AddWithValue("UserId", userId);
 
                     var requests = new List<GetFriendRequestDto>();

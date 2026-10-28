@@ -6,8 +6,8 @@ public class DatabaseInitializer(NpgsqlDataSource dataSource)
 {
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        await using var command = new NpgsqlCommand("SELECT 1", connection);
+        NpgsqlConnection connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        NpgsqlCommand command = new NpgsqlCommand("SELECT 1", connection);
         await command.ExecuteScalarAsync(cancellationToken);
 
         // Create Enum Types
@@ -86,7 +86,7 @@ public class DatabaseInitializer(NpgsqlDataSource dataSource)
         ";
         await command.ExecuteNonQueryAsync(cancellationToken);
 
-        // Friendships table: one row per pair, the requester sent the request to the addressee.
+        // Friendships table
         command.CommandText = @"
             CREATE TABLE IF NOT EXISTS Friendships (
                 RequesterId UUID NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,

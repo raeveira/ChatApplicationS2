@@ -20,6 +20,7 @@ namespace Infrastructure.Repositories
             _databaseConnection = databaseConnection;
         }
 
+        // Creates a new message in the database.
         public Task CreateMessageAsync(CreateMessageDto message, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -39,6 +40,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Retrieves a message by its ID.
         public Task<GetMessageDto?> GetMessageAsync(Guid messageId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -59,6 +61,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Retrieves messages for a specific chat, with optional pagination.
         // Returns the newest messages first. Pass the SentAt of the oldest loaded message as "before" to page further back.
         public Task<List<GetMessageDto>> GetMessagesForChatAsync(
             Guid chatId,
@@ -102,6 +105,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Deletes a message by its ID.
         public Task DeleteMessageAsync(Guid messageId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -116,15 +120,16 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Maps the reader to a GetMessageDto.
         private static GetMessageDto ReadMessage(NpgsqlDataReader reader)
         {
             return new GetMessageDto
             {
-                Id = reader.GetGuid(0),
-                SentById = reader.GetGuid(1),
-                SentInId = reader.GetGuid(2),
-                Content = reader.GetString(3),
-                SentAt = reader.GetDateTime(4)
+                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                SentById = reader.GetGuid(reader.GetOrdinal("SentById")),
+                SentInId = reader.GetGuid(reader.GetOrdinal("SentInId")),
+                Content = reader.GetString(reader.GetOrdinal("Content")),
+                SentAt = reader.GetDateTime(reader.GetOrdinal("SentAt"))
             };
         }
     }

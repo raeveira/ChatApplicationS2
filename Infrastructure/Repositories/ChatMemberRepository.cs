@@ -19,13 +19,14 @@ namespace Infrastructure.Repositories
             _databaseConnection = databaseConnection;
         }
 
+        // Adds a member to a chat.
         public Task AddMemberAsync(AddChatMemberDto member, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
                     // The chat_member_role enum values are lowercase in PostgreSQL, so the text is cast explicitly.
-                    await using var command = new NpgsqlCommand(
+                    NpgsqlCommand command = new NpgsqlCommand(
                         "INSERT INTO ChatMembers (ChatId, UserId, Role, JoinedAt) VALUES (@ChatId, @UserId, @Role::chat_member_role, @JoinedAt)",
                         connection);
                     command.Parameters.AddWithValue("ChatId", member.ChatId);
@@ -38,12 +39,13 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Removes a member from a chat.
         public Task RemoveMemberAsync(Guid chatId, Guid userId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
-                    await using var command = new NpgsqlCommand(
+                    NpgsqlCommand command = new NpgsqlCommand(
                         "DELETE FROM ChatMembers WHERE ChatId = @ChatId AND UserId = @UserId",
                         connection);
                     command.Parameters.AddWithValue("ChatId", chatId);
@@ -54,12 +56,13 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Checks if a user is a member of a chat.
         public Task<bool> IsMemberAsync(Guid chatId, Guid userId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
-                    await using var command = new NpgsqlCommand(
+                    NpgsqlCommand command = new NpgsqlCommand(
                         "SELECT EXISTS(SELECT 1 FROM ChatMembers WHERE ChatId = @ChatId AND UserId = @UserId)",
                         connection);
                     command.Parameters.AddWithValue("ChatId", chatId);
@@ -75,13 +78,13 @@ namespace Infrastructure.Repositories
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
-                    await using var command = new NpgsqlCommand(
+                    NpgsqlCommand command = new NpgsqlCommand(
                         "SELECT ChatId, UserId, Role::text, JoinedAt FROM ChatMembers WHERE ChatId = @ChatId AND UserId = @UserId",
                         connection);
                     command.Parameters.AddWithValue("ChatId", chatId);
                     command.Parameters.AddWithValue("UserId", userId);
 
-                    await using var reader = await command.ExecuteReaderAsync(ct);
+                    NpgsqlDataReader reader = await command.ExecuteReaderAsync(ct);
                     if (await reader.ReadAsync(ct))
                     {
                         return ReadMember(reader);
@@ -92,18 +95,19 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Retrieves all members of a chat.
         public Task<List<GetChatMemberDto>> GetMembersAsync(Guid chatId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
-                    await using var command = new NpgsqlCommand(
+                    NpgsqlCommand command = new NpgsqlCommand(
                         "SELECT ChatId, UserId, Role::text, JoinedAt FROM ChatMembers WHERE ChatId = @ChatId ORDER BY JoinedAt",
                         connection);
                     command.Parameters.AddWithValue("ChatId", chatId);
 
                     var members = new List<GetChatMemberDto>();
-                    await using var reader = await command.ExecuteReaderAsync(ct);
+                    NpgsqlDataReader reader = await command.ExecuteReaderAsync(ct);
                     while (await reader.ReadAsync(ct))
                     {
                         members.Add(ReadMember(reader));
@@ -114,12 +118,13 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Updates the role of a chat member.
         public Task UpdateMemberRoleAsync(Guid chatId, Guid userId, EChatMemberRole role, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
-                    await using var command = new NpgsqlCommand(
+                    NpgsqlCommand command = new NpgsqlCommand(
                         "UPDATE ChatMembers SET Role = @Role::chat_member_role WHERE ChatId = @ChatId AND UserId = @UserId",
                         connection);
                     command.Parameters.AddWithValue("ChatId", chatId);
@@ -131,14 +136,15 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Maps a data reader to a GetChatMemberDto.
         private static GetChatMemberDto ReadMember(NpgsqlDataReader reader)
         {
             return new GetChatMemberDto
             {
-                ChatId = reader.GetGuid(0),
-                UserId = reader.GetGuid(1),
-                Role = Enum.Parse<EChatMemberRole>(reader.GetString(2), ignoreCase: true),
-                JoinedAt = reader.GetDateTime(3)
+                ChatId = reader.GetGuid(reader.GetOrdinal("ChatId")),
+                UserId = reader.GetGuid(reader.GetOrdinal("UserId")),
+                Role = Enum.Parse<EChatMemberRole>(reader.GetString(reader.GetOrdinal("Role")), ignoreCase: true),
+                JoinedAt = reader.GetDateTime(reader.GetOrdinal("JoinedAt"))
             };
         }
     }

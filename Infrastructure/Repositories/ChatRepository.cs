@@ -8,6 +8,7 @@ using Npgsql;
 using Application.Dtos;
 using Application.Interfaces;
 using Infrastructure.Database;
+using System.Data;
 
 namespace Infrastructure.Repositories
 {
@@ -20,6 +21,7 @@ namespace Infrastructure.Repositories
             _databaseConnection = databaseConnection;
         }
 
+        // Checks if a chat exists by its ID.
         public Task<bool> ChatExistsAsync(Guid chatId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -34,6 +36,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Creates a new chat.
         public Task CreateChatAsync(CreateChatDto chat, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -52,6 +55,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Retrieves a chat by its ID.
         public Task<GetChatDto?> GetChatAsync(Guid chatId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -72,17 +76,23 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Retrieves all chats for a specific user.
         public Task<List<GetChatDto>> GetChatsForUserAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
                     await using var command = new NpgsqlCommand(
-                        @"SELECT c.Id, c.Type::text, c.Name, c.CreatedAt
-                          FROM Chats c
-                          JOIN ChatMembers cm ON cm.ChatId = c.Id
-                          WHERE cm.UserId = @UserId
-                          ORDER BY c.CreatedAt DESC",
+                        @"SELECT
+                            Chat.Id,
+                            Chat.Type::text,
+                            Chat.Name,
+                            Chat.CreatedAt
+                        FROM Chats AS Chat
+                        JOIN ChatMembers AS ChatMember
+                            ON ChatMember.ChatId = Chat.Id
+                        WHERE ChatMember.UserId = @UserId
+                        ORDER BY Chat.CreatedAt DESC",
                         connection);
                     command.Parameters.AddWithValue("UserId", userId);
 
@@ -98,18 +108,27 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Retrieves a private chat between two users, if it exists.
         public Task<GetChatDto?> GetPrivateChatBetweenAsync(Guid firstUserId, Guid secondUserId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
                 async (connection, ct) =>
                 {
                     await using var command = new NpgsqlCommand(
-                        @"SELECT c.Id, c.Type::text, c.Name, c.CreatedAt
-                          FROM Chats c
-                          JOIN ChatMembers memberA ON memberA.ChatId = c.Id AND memberA.UserId = @FirstUserId
-                          JOIN ChatMembers memberB ON memberB.ChatId = c.Id AND memberB.UserId = @SecondUserId
-                          WHERE c.Type = 'private'
-                          LIMIT 1",
+                        @"SELECT
+                            Chats.Id,
+                            Chats.Type::text,
+                            Chats.Name,
+                            Chats.CreatedAt
+                        FROM Chats AS Chat
+                        JOIN ChatMembers AS FirstUserMembership
+                            ON FirstUserMembership.ChatId = Chat.Id
+                            AND FirstUserMembership.UserId = @FirstUserId
+                        JOIN ChatMembers AS SecondUserMembership
+                            ON SecondUserMembership.ChatId = Chat.Id
+                            AND SecondUserMembership.UserId = @SecondUserId
+                        WHERE Chat.Type = 'private'
+                        LIMIT 1;",
                         connection);
                     command.Parameters.AddWithValue("FirstUserId", firstUserId);
                     command.Parameters.AddWithValue("SecondUserId", secondUserId);
@@ -125,6 +144,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Updates the name of a chat.
         public Task UpdateChatNameAsync(Guid chatId, UpdateChatNameDto updateChatNameDto, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -140,6 +160,7 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Deletes a chat and all its associated messages and members.
         public Task DeleteChatAsync(Guid chatId, CancellationToken cancellationToken = default)
         {
             return _databaseConnection.WithConnectionAsync(
@@ -165,14 +186,15 @@ namespace Infrastructure.Repositories
                 cancellationToken);
         }
 
+        // Maps a data reader to a GetChatDto.
         private static GetChatDto ReadChat(NpgsqlDataReader reader)
         {
             return new GetChatDto
             {
-                Id = reader.GetGuid(0),
-                Type = Enum.Parse<EChatType>(reader.GetString(1), ignoreCase: true),
-                Name = reader.IsDBNull(2) ? null : reader.GetString(2),
-                CreatedAt = reader.GetDateTime(3)
+                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Type = Enum.Parse<EChatType>(reader.GetString(reader.GetOrdinal("Type")), ignoreCase: true),
+                Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? null : reader.GetString(reader.GetOrdinal("Name")),
+                CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
             };
         }
     }
