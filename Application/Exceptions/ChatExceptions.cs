@@ -1,16 +1,102 @@
+
 namespace Application.Exceptions;
 
-public class ChatNotFoundException()
-    : Exception("The chat does not exist.");
+public class ChatNotFoundException : Exception
+{
+    private const string DefaultMessage = "The chat does not exist.";
 
-public class MessageNotFoundException()
-    : Exception("The message does not exist.");
+    public ChatNotFoundException()
+        : base(DefaultMessage)
+    {
+    }
 
-public class UserNotFoundException()
-    : Exception("The user does not exist.");
+    public ChatNotFoundException(string? message)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message)
+    {
+    }
 
-public class NotChatMemberException()
-    : Exception("You are not a member of this chat.");
+    public ChatNotFoundException(string? message, Exception? innerException)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message, innerException)
+    {
+    }
+}
 
-public class NotChatAdminException()
-    : Exception("Only chat admins can do this.");
+public class MessageNotFoundException : Exception
+{
+    private const string DefaultMessage = "The message does not exist.";
+
+    public MessageNotFoundException()
+        : base(DefaultMessage)
+    {
+    }
+
+    public MessageNotFoundException(string? message)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message)
+    {
+    }
+
+    public MessageNotFoundException(string? message, Exception? innerException)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message, innerException)
+    {
+    }
+}
+
+public class UserNotFoundException : Exception
+{
+    private const string DefaultMessage = "The user does not exist.";
+
+    public UserNotFoundException()
+        : base(DefaultMessage)
+    {
+    }
+
+    public UserNotFoundException(string? message)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message)
+    {
+    }
+
+    public UserNotFoundException(string? message, Exception? innerException)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message, innerException)
+    {
+    }
+}
+
+public class NotChatMemberException : Exception
+{
+    private const string DefaultMessage = "You are not a member of this chat.";
+
+    public NotChatMemberException()
+        : base(DefaultMessage)
+    {
+    }
+
+    public NotChatMemberException(string? message)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message)
+    {
+    }
+
+    public NotChatMemberException(string? message, Exception? innerException)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message, innerException)
+    {
+    }
+}
+
+public class NotChatAdminException : Exception
+{
+    private const string DefaultMessage = "Only chat admins can do this.";
+
+    public NotChatAdminException()
+        : base(DefaultMessage)
+    {
+    }
+
+    public NotChatAdminException(string? message)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message)
+    {
+    }
+
+    public NotChatAdminException(string? message, Exception? innerException)
+        : base(string.IsNullOrWhiteSpace(message) ? DefaultMessage : message, innerException)
+    {
+    }
+}

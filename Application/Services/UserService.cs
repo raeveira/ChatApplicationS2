@@ -32,7 +32,7 @@ public class UserService(IUserRepository userRepository, IPasswordHasher passwor
 
         var existingUser = await userRepository.GetUserByUsernameAsync(username, cancellationToken);
         if (existingUser is not null && existingUser.Id != userId)
-            throw new UsernameTakenException(username);
+            throw new UsernameTakenException();
 
         await userRepository.UpdateUsernameAsync(userId, new UpdateUsernameDto
         {
