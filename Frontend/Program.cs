@@ -3,6 +3,7 @@ using Domain;
 using Frontend;
 using Frontend.Components;
 using Infrastructure;
+using Infrastructure.Database;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
