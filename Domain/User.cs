@@ -53,12 +53,16 @@ public sealed class User
         var trimmed = username?.Trim() ?? string.Empty;
 
         if (trimmed.Length < MinUsernameLength || trimmed.Length > MaxUsernameLength)
+        {
             throw new ArgumentException(
                 $"Username must be between {MinUsernameLength} and {MaxUsernameLength} characters.", nameof(username));
+        }
 
         if (!trimmed.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
+        {
             throw new ArgumentException(
                 "Username may only contain letters, digits and underscores.", nameof(username));
+        }
 
         return trimmed.ToLowerInvariant();
     }
@@ -68,8 +72,10 @@ public sealed class User
         var trimmed = displayName?.Trim() ?? string.Empty;
 
         if (trimmed.Length == 0 || trimmed.Length > MaxDisplayNameLength)
+        {
             throw new ArgumentException(
                 $"Display name must be between 1 and {MaxDisplayNameLength} characters.", nameof(displayName));
+        }
 
         return trimmed;
     }
