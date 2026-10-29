@@ -8,10 +8,10 @@ public class CurrentUser(AuthenticationStateProvider authenticationStateProvider
 {
     public async Task<Guid> GetIdAsync()
     {
-        var state = await authenticationStateProvider.GetAuthenticationStateAsync();
-        var idText = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        AuthenticationState state = await authenticationStateProvider.GetAuthenticationStateAsync();
+        string? idText = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        return Guid.TryParse(idText, out var userId)
+        return Guid.TryParse(idText, out Guid userId)
             ? userId
             : throw new InvalidOperationException("The user is not logged in.");
     }
