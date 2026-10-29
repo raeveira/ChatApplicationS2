@@ -24,7 +24,7 @@ public static class AuthEndpoints
             try
             {
                 var user = await authService.LoginAsync(
-                    new LoginRequest(username ?? string.Empty, password ?? string.Empty),
+                    new LoginRequest { Username = username ?? string.Empty, Password = password ?? string.Empty },
                     context.RequestAborted);
 
                 var identity = new ClaimsIdentity(
@@ -83,7 +83,7 @@ public static class AuthEndpoints
             return Results.Redirect("/login");
         }).RequireAuthorization();
 
-        // Used when the cookie belongs to an account that no longer exists (for example after a database reset).
+        // Used when the cookie belongs to an account that no longer exists.
         app.MapGet("/auth/session-expired", async (HttpContext context) =>
         {
             await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
