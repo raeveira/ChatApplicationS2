@@ -1,8 +1,7 @@
-namespace Domain
+namespace Domain;
+
+public enum EChatType
 {
-    public enum EChatType
-    {
-        Private,
-        Group
-    }
+    Private,
+    Group
 }

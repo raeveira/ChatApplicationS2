@@ -1,8 +1,7 @@
-namespace Domain
+namespace Domain;
+
+public enum EChatMemberRole
 {
-    public enum EChatMemberRole
-    {
-        Member,
-        Admin
-    }
+    Member,
+    Admin
 }

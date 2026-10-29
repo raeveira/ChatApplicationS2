@@ -1,8 +1,7 @@
-namespace Domain
+namespace Domain;
+
+public enum EFriendshipStatus
 {
-    public enum EFriendshipStatus
-    {
-        Pending,
-        Accepted
-    }
+    Pending,
+    Accepted
 }

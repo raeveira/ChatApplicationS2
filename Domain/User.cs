@@ -1,82 +1,81 @@
-namespace Domain
+namespace Domain;
+
+public sealed class User
 {
-    public sealed class User
+    public const int MinUsernameLength = 3;
+    public const int MaxUsernameLength = 32;
+    public const int MaxDisplayNameLength = 64;
+
+    public Guid Id { get; }
+    public string Username { get; }
+    public string DisplayName { get; private set; }
+    public string? IconUrl { get; private set; }
+    public DateTime CreatedAt { get; }
+    public DateTime UpdatedAt { get; private set; }
+
+    private User(Guid id, string username, string displayName, string? iconUrl, DateTime createdAt, DateTime updatedAt)
     {
-        public const int MinUsernameLength = 3;
-        public const int MaxUsernameLength = 32;
-        public const int MaxDisplayNameLength = 64;
+        Id = id;
+        Username = username;
+        DisplayName = displayName;
+        IconUrl = iconUrl;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
+    }
 
-        public Guid Id { get; }
-        public string Username { get; }
-        public string DisplayName { get; private set; }
-        public string? IconUrl { get; private set; }
-        public DateTime CreatedAt { get; }
-        public DateTime UpdatedAt { get; private set; }
+    public static User Create(string username, string displayName, string? iconUrl = null)
+    {
+        var now = DateTime.UtcNow;
+        return new User(
+            Guid.NewGuid(),
+            ValidateUsername(username),
+            ValidateDisplayName(displayName),
+            NormalizeIconUrl(iconUrl),
+            now,
+            now);
+    }
 
-        private User(Guid id, string username, string displayName, string? iconUrl, DateTime createdAt, DateTime updatedAt)
-        {
-            Id = id;
-            Username = username;
-            DisplayName = displayName;
-            IconUrl = iconUrl;
-            CreatedAt = createdAt;
-            UpdatedAt = updatedAt;
-        }
+    // Rebuilds a user from stored data; the values were validated when they were first saved.
+    public static User Restore(Guid id, string username, string displayName, string? iconUrl, DateTime createdAt, DateTime updatedAt)
+    {
+        return new User(id, username, displayName, iconUrl, createdAt, updatedAt);
+    }
 
-        public static User Create(string username, string displayName, string? iconUrl = null)
-        {
-            var now = DateTime.UtcNow;
-            return new User(
-                Guid.NewGuid(),
-                ValidateUsername(username),
-                ValidateDisplayName(displayName),
-                NormalizeIconUrl(iconUrl),
-                now,
-                now);
-        }
+    public void UpdateProfile(string displayName, string? iconUrl)
+    {
+        DisplayName = ValidateDisplayName(displayName);
+        IconUrl = NormalizeIconUrl(iconUrl);
+        UpdatedAt = DateTime.UtcNow;
+    }
 
-        // Rebuilds a user from stored data; the values were validated when they were first saved.
-        public static User Restore(Guid id, string username, string displayName, string? iconUrl, DateTime createdAt, DateTime updatedAt)
-        {
-            return new User(id, username, displayName, iconUrl, createdAt, updatedAt);
-        }
+    public static string ValidateUsername(string username)
+    {
+        var trimmed = username?.Trim() ?? string.Empty;
 
-        public void UpdateProfile(string displayName, string? iconUrl)
-        {
-            DisplayName = ValidateDisplayName(displayName);
-            IconUrl = NormalizeIconUrl(iconUrl);
-            UpdatedAt = DateTime.UtcNow;
-        }
+        if (trimmed.Length < MinUsernameLength || trimmed.Length > MaxUsernameLength)
+            throw new ArgumentException(
+                $"Username must be between {MinUsernameLength} and {MaxUsernameLength} characters.", nameof(username));
 
-        public static string ValidateUsername(string username)
-        {
-            var trimmed = username?.Trim() ?? string.Empty;
+        if (!trimmed.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
+            throw new ArgumentException(
+                "Username may only contain letters, digits and underscores.", nameof(username));
 
-            if (trimmed.Length < MinUsernameLength || trimmed.Length > MaxUsernameLength)
-                throw new ArgumentException(
-                    $"Username must be between {MinUsernameLength} and {MaxUsernameLength} characters.", nameof(username));
+        return trimmed.ToLowerInvariant();
+    }
 
-            if (!trimmed.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
-                throw new ArgumentException(
-                    "Username may only contain letters, digits and underscores.", nameof(username));
+    public static string ValidateDisplayName(string displayName)
+    {
+        var trimmed = displayName?.Trim() ?? string.Empty;
 
-            return trimmed.ToLowerInvariant();
-        }
+        if (trimmed.Length == 0 || trimmed.Length > MaxDisplayNameLength)
+            throw new ArgumentException(
+                $"Display name must be between 1 and {MaxDisplayNameLength} characters.", nameof(displayName));
 
-        public static string ValidateDisplayName(string displayName)
-        {
-            var trimmed = displayName?.Trim() ?? string.Empty;
+        return trimmed;
+    }
 
-            if (trimmed.Length == 0 || trimmed.Length > MaxDisplayNameLength)
-                throw new ArgumentException(
-                    $"Display name must be between 1 and {MaxDisplayNameLength} characters.", nameof(displayName));
-
-            return trimmed;
-        }
-
-        private static string? NormalizeIconUrl(string? iconUrl)
-        {
-            return string.IsNullOrWhiteSpace(iconUrl) ? null : iconUrl.Trim();
-        }
+    private static string? NormalizeIconUrl(string? iconUrl)
+    {
+        return string.IsNullOrWhiteSpace(iconUrl) ? null : iconUrl.Trim();
     }
 }
