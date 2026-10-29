@@ -1,7 +1,7 @@
-namespace Application.Dtos
+namespace Application.Dtos;
+
+public class UpdateChatNameDto
 {
-    public class UpdateChatNameDto
-    {
-        public string? Name { get; set; }
-    }
+    public string? Name { get; set; }
 }
+

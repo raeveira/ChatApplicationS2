@@ -19,10 +19,10 @@ public class ChatService(
         CancellationToken cancellationToken = default)
     {
         // The domain validates the name before anything is saved.
-        var chat = Chat.Create(EChatType.Group, groupName);
+        Chat chat = Chat.Create(EChatType.Group, groupName);
 
-        var memberUserIds = friendUserIds.Where(userId => userId != currentUserId).Distinct().ToList();
-        foreach (var memberUserId in memberUserIds)
+        List<Guid> memberUserIds = friendUserIds.Where(userId => userId != currentUserId).Distinct().ToList();
+        foreach (Guid memberUserId in memberUserIds)
         {
             if (!await AreFriendsAsync(currentUserId, memberUserId, cancellationToken))
                 throw new NotFriendsException();
@@ -30,7 +30,7 @@ public class ChatService(
 
         await SaveChatAsync(chat, cancellationToken);
         await AddMemberAsync(chat.Id, currentUserId, EChatMemberRole.Admin, cancellationToken);
-        foreach (var memberUserId in memberUserIds)
+        foreach (Guid memberUserId in memberUserIds)
         {
             await AddMemberAsync(chat.Id, memberUserId, EChatMemberRole.Member, cancellationToken);
         }
@@ -38,37 +38,40 @@ public class ChatService(
         return ToChatDto(chat);
     }
 
+    // Opens a private chat between the current user and another user. Creates the chat if it doesn't exist.
     public async Task<GetChatDto> OpenPrivateChatAsync(
         Guid currentUserId,
         Guid otherUserId,
         CancellationToken cancellationToken = default)
     {
-        var otherUser = await userRepository.GetUserAsync(otherUserId, cancellationToken)
+        GetUserDto otherUser = await userRepository.GetUserAsync(otherUserId, cancellationToken)
             ?? throw new UserNotFoundException();
 
         return await OpenPrivateChatWithUserAsync(currentUserId, otherUser, cancellationToken);
     }
 
+    // Opens a private chat between the current user and another user identified by their username. Creates the chat if it doesn't exist.
     public async Task<GetChatDto> OpenPrivateChatByUsernameAsync(
         Guid currentUserId,
         string otherUsername,
         CancellationToken cancellationToken = default)
     {
-        var otherUser = await userRepository.GetUserByUsernameAsync(
+        GetUserDto otherUser = await userRepository.GetUserByUsernameAsync(
                             otherUsername.Trim().ToLowerInvariant(), cancellationToken)
                         ?? throw new UserNotFoundException();
 
         return await OpenPrivateChatWithUserAsync(currentUserId, otherUser, cancellationToken);
     }
 
+    // Retrieves a list of chat summaries for the current user.
     public async Task<List<GetChatSummaryDto>> GetMyChatSummariesAsync(
         Guid currentUserId,
         CancellationToken cancellationToken = default)
     {
-        var chats = await chatRepository.GetChatsForUserAsync(currentUserId, cancellationToken);
+        List<GetChatDto> chats = await chatRepository.GetChatsForUserAsync(currentUserId, cancellationToken);
 
-        var summaries = new List<GetChatSummaryDto>();
-        foreach (var chat in chats)
+        List<GetChatSummaryDto> summaries = new List<GetChatSummaryDto>();
+        foreach (GetChatDto chat in chats)
         {
             summaries.Add(await BuildSummaryAsync(currentUserId, chat, cancellationToken));
         }
@@ -76,6 +79,7 @@ public class ChatService(
         return summaries;
     }
 
+    // Retrieves the summary of a specific chat for the current user.
     public async Task<GetChatSummaryDto> GetChatSummaryAsync(
         Guid currentUserId,
         Guid chatId,
@@ -83,12 +87,13 @@ public class ChatService(
     {
         await EnsureIsMemberAsync(chatId, currentUserId, cancellationToken);
 
-        var chat = await chatRepository.GetChatAsync(chatId, cancellationToken)
+        GetChatDto chat = await chatRepository.GetChatAsync(chatId, cancellationToken)
             ?? throw new ChatNotFoundException();
 
         return await BuildSummaryAsync(currentUserId, chat, cancellationToken);
     }
 
+    // Retrieves the profiles of all members in a specific chat for the current user.
     public async Task<List<GetChatMemberProfileDto>> GetMemberProfilesAsync(
         Guid currentUserId,
         Guid chatId,
@@ -96,12 +101,12 @@ public class ChatService(
     {
         await EnsureIsMemberAsync(chatId, currentUserId, cancellationToken);
 
-        var members = await chatMemberRepository.GetMembersAsync(chatId, cancellationToken);
+        List<GetChatMemberDto> members = await chatMemberRepository.GetMembersAsync(chatId, cancellationToken);
 
-        var profiles = new List<GetChatMemberProfileDto>();
-        foreach (var member in members)
+        List<GetChatMemberProfileDto> profiles = new List<GetChatMemberProfileDto>();
+        foreach (GetChatMemberDto member in members)
         {
-            var user = await userRepository.GetUserAsync(member.UserId, cancellationToken);
+            GetUserDto? user = await userRepository.GetUserAsync(member.UserId, cancellationToken);
             if (user is null)
                 continue;
 
@@ -118,6 +123,7 @@ public class ChatService(
         return profiles;
     }
 
+    // Renames a group chat. Only admins can perform this action.
     public async Task RenameGroupChatAsync(
         Guid currentUserId,
         Guid chatId,
@@ -126,17 +132,17 @@ public class ChatService(
     {
         await EnsureIsAdminAsync(chatId, currentUserId, cancellationToken);
 
-        var chatDto = await chatRepository.GetChatAsync(chatId, cancellationToken)
+        GetChatDto chatDto = await chatRepository.GetChatAsync(chatId, cancellationToken)
             ?? throw new ChatNotFoundException();
 
         // The domain validates the name (groups need one, private chats can't have one).
-        var chat = Chat.Restore(chatDto.Id, chatDto.Type, chatDto.Name, chatDto.CreatedAt);
+        Chat chat = Chat.Restore(chatDto.Id, chatDto.Type, chatDto.Name, chatDto.CreatedAt);
         chat.Rename(newName);
 
         await chatRepository.UpdateChatNameAsync(chatId, new UpdateChatNameDto { Name = chat.Name }, cancellationToken);
     }
 
-    // Admins can add their friends to a group.
+    // Admins can add their friends to a group chat.
     public async Task AddMemberToGroupAsync(
         Guid currentUserId,
         Guid chatId,
@@ -145,7 +151,7 @@ public class ChatService(
     {
         await EnsureIsAdminAsync(chatId, currentUserId, cancellationToken);
 
-        var chat = await chatRepository.GetChatAsync(chatId, cancellationToken)
+        GetChatDto chat = await chatRepository.GetChatAsync(chatId, cancellationToken)
             ?? throw new ChatNotFoundException();
 
         if (chat.Type != EChatType.Group)
@@ -172,7 +178,7 @@ public class ChatService(
         else
             await EnsureIsAdminAsync(chatId, currentUserId, cancellationToken);
 
-        var chat = await chatRepository.GetChatAsync(chatId, cancellationToken)
+        GetChatDto chat = await chatRepository.GetChatAsync(chatId, cancellationToken)
             ?? throw new ChatNotFoundException();
 
         if (chat.Type != EChatType.Group)
@@ -181,6 +187,7 @@ public class ChatService(
         await chatMemberRepository.RemoveMemberAsync(chatId, memberUserId, cancellationToken);
     }
 
+    // Opens a private chat with the specified user. Creates the chat if it doesn't exist.
     private async Task<GetChatDto> OpenPrivateChatWithUserAsync(
         Guid currentUserId,
         GetUserDto otherUser,
@@ -189,15 +196,17 @@ public class ChatService(
         if (currentUserId == otherUser.Id)
             throw new ArgumentException("You cannot start a private chat with yourself.");
 
-        var existingChat = await chatRepository.GetPrivateChatBetweenAsync(currentUserId, otherUser.Id, cancellationToken);
+        GetChatDto? existingChat = await chatRepository.GetPrivateChatBetweenAsync(currentUserId, otherUser.Id, cancellationToken);
         if (existingChat is not null)
             return existingChat;
 
         if (!otherUser.AllowDirectMessagesFromEveryone
             && !await AreFriendsAsync(currentUserId, otherUser.Id, cancellationToken))
+        {
             throw new DirectMessagesNotAllowedException();
+        }
 
-        var chat = Chat.Create(EChatType.Private, null);
+        Chat chat = Chat.Create(EChatType.Private, null);
         await SaveChatAsync(chat, cancellationToken);
 
         await AddMemberAsync(chat.Id, currentUserId, EChatMemberRole.Member, cancellationToken);
@@ -206,12 +215,13 @@ public class ChatService(
         return ToChatDto(chat);
     }
 
+    // Builds a summary of the specified chat for the current user.
     private async Task<GetChatSummaryDto> BuildSummaryAsync(
         Guid currentUserId,
         GetChatDto chat,
         CancellationToken cancellationToken)
     {
-        var members = await chatMemberRepository.GetMembersAsync(chat.Id, cancellationToken);
+        List<GetChatMemberDto> members = await chatMemberRepository.GetMembersAsync(chat.Id, cancellationToken);
 
         if (chat.Type == EChatType.Group)
         {
@@ -225,8 +235,8 @@ public class ChatService(
             };
         }
 
-        var otherUserId = members.FirstOrDefault(member => member.UserId != currentUserId)?.UserId;
-        var otherUser = otherUserId is null
+        Guid? otherUserId = members.FirstOrDefault(member => member.UserId != currentUserId)?.UserId;
+        GetUserDto? otherUser = otherUserId is null
             ? null
             : await userRepository.GetUserAsync(otherUserId.Value, cancellationToken);
 
@@ -241,6 +251,7 @@ public class ChatService(
         };
     }
 
+    // Saves a new chat to the repository.
     private Task SaveChatAsync(Chat chat, CancellationToken cancellationToken)
     {
         return chatRepository.CreateChatAsync(new CreateChatDto
@@ -252,6 +263,7 @@ public class ChatService(
         }, cancellationToken);
     }
 
+    // Adds a member to a chat with the specified role.
     private Task AddMemberAsync(Guid chatId, Guid userId, EChatMemberRole role, CancellationToken cancellationToken)
     {
         return chatMemberRepository.AddMemberAsync(new AddChatMemberDto
@@ -263,27 +275,31 @@ public class ChatService(
         }, cancellationToken);
     }
 
+    // Checks if two users are friends.
     private async Task<bool> AreFriendsAsync(Guid firstUserId, Guid secondUserId, CancellationToken cancellationToken)
     {
-        var friendship = await friendshipRepository.GetFriendshipBetweenAsync(firstUserId, secondUserId, cancellationToken);
+        GetFriendshipDto? friendship = await friendshipRepository.GetFriendshipBetweenAsync(firstUserId, secondUserId, cancellationToken);
         return friendship?.Status == EFriendshipStatus.Accepted;
     }
 
+    // Ensures that the specified user is a member of the chat. Throws an exception if not.
     private async Task EnsureIsMemberAsync(Guid chatId, Guid userId, CancellationToken cancellationToken)
     {
         if (!await chatMemberRepository.IsMemberAsync(chatId, userId, cancellationToken))
             throw new NotChatMemberException();
     }
 
+    // Ensures that the specified user is an admin of the chat. Throws an exception if not.
     private async Task EnsureIsAdminAsync(Guid chatId, Guid userId, CancellationToken cancellationToken)
     {
-        var member = await chatMemberRepository.GetMemberAsync(chatId, userId, cancellationToken)
+        GetChatMemberDto? member = await chatMemberRepository.GetMemberAsync(chatId, userId, cancellationToken)
             ?? throw new NotChatAdminException();
 
         if (member.Role != EChatMemberRole.Admin)
             throw new NotChatAdminException();
     }
 
+    // Converts a Chat domain object to a GetChatDto.
     private static GetChatDto ToChatDto(Chat chat)
     {
         return new GetChatDto

@@ -1,5 +1,14 @@
 namespace Application.Dtos;
 
-public record RegisterUserRequest(string Username, string Password, string? DisplayName = null);
+public class RegisterUserRequest()
+{
+    public required string Username { get; set; }
+    public required string Password { get; set; }
+    public string? DisplayName { get; set; }
+}
 
-public record LoginRequest(string Username, string Password);
+public class LoginRequest()
+{
+    public required string Username { get; set; }
+    public required string Password { get; set; }
+}

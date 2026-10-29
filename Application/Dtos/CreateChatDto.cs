@@ -1,12 +1,11 @@
 using Domain;
 
-namespace Application.Dtos
+namespace Application.Dtos;
+
+public class CreateChatDto
 {
-    public class CreateChatDto
-    {
-        public Guid Id { get; set; }
-        public EChatType Type { get; set; }
-        public string? Name { get; set; }
-        public DateTime CreatedAt { get; set; }
-    }
+    public Guid Id { get; set; }
+    public EChatType Type { get; set; }
+    public string? Name { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

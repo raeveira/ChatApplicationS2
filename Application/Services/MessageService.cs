@@ -9,6 +9,7 @@ public class MessageService(
     IMessageRepository messageRepository,
     IChatMemberRepository chatMemberRepository)
 {
+    // Sends a message in a chat. The current user must be a member of the chat.
     public async Task<GetMessageDto> SendMessageAsync(
         Guid currentUserId,
         Guid chatId,
@@ -18,7 +19,7 @@ public class MessageService(
         await EnsureIsMemberAsync(chatId, currentUserId, cancellationToken);
 
         // The domain validates and trims the content.
-        var message = Message.Create(currentUserId, chatId, content);
+        Message message = Message.Create(currentUserId, chatId, content);
 
         await messageRepository.CreateMessageAsync(new CreateMessageDto
         {
@@ -39,8 +40,10 @@ public class MessageService(
         };
     }
 
+    // Retrieves messages for a chat, optionally only those newer than a specified date.
     // Returns the latest messages, oldest first. Pass the SentAt of the last message there is
     // as "onlyNewerThan" to fetch just the new ones (refresh).
+    // The current user must be a member of the chat.
     public async Task<List<GetMessageDto>> GetMessagesAsync(
         Guid currentUserId,
         Guid chatId,
@@ -50,7 +53,7 @@ public class MessageService(
     {
         await EnsureIsMemberAsync(chatId, currentUserId, cancellationToken);
 
-        var newestFirst = await messageRepository.GetMessagesForChatAsync(
+        List<GetMessageDto> newestFirst = await messageRepository.GetMessagesForChatAsync(
             chatId,
             limit: maxMessages,
             after: onlyNewerThan,
@@ -70,7 +73,7 @@ public class MessageService(
     {
         await EnsureIsMemberAsync(chatId, currentUserId, cancellationToken);
 
-        var newestFirst = await messageRepository.GetMessagesForChatAsync(
+        List<GetMessageDto> newestFirst = await messageRepository.GetMessagesForChatAsync(
             chatId,
             limit: maxMessages,
             before: olderThan,
@@ -80,18 +83,20 @@ public class MessageService(
         return newestFirst;
     }
 
+    // Deletes a message. Authors can delete their own messages; chat admins can delete anyone's.
+    // The current user must be a member of the chat.
     public async Task DeleteMessageAsync(
         Guid currentUserId,
         Guid messageId,
         CancellationToken cancellationToken = default)
     {
-        var message = await messageRepository.GetMessageAsync(messageId, cancellationToken)
+        GetMessageDto message = await messageRepository.GetMessageAsync(messageId, cancellationToken)
             ?? throw new MessageNotFoundException();
 
         // Authors can delete their own messages; chat admins can delete anyone's.
         if (message.SentById != currentUserId)
         {
-            var member = await chatMemberRepository.GetMemberAsync(message.SentInId, currentUserId, cancellationToken)
+            GetChatMemberDto member = await chatMemberRepository.GetMemberAsync(message.SentInId, currentUserId, cancellationToken)
                 ?? throw new NotChatMemberException();
 
             if (member.Role != EChatMemberRole.Admin)
@@ -101,6 +106,7 @@ public class MessageService(
         await messageRepository.DeleteMessageAsync(messageId, cancellationToken);
     }
 
+    // Ensures that the specified user is a member of the specified chat. Throws if not.
     private async Task EnsureIsMemberAsync(Guid chatId, Guid userId, CancellationToken cancellationToken)
     {
         if (!await chatMemberRepository.IsMemberAsync(chatId, userId, cancellationToken))

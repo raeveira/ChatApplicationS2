@@ -1,13 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+namespace Application.Dtos;
 
-namespace Application.Dtos
+public class UpdatePasswordHashDto
 {
-    public class UpdatePasswordHashDto
-    {
-        public required string PasswordHash { get; set; }
-        public DateTime UpdatedAt { get; set; }
-    }
+    public required string PasswordHash { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
