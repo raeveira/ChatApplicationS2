@@ -145,25 +145,25 @@
 
     private Task SendFriendRequestAsync() => RunAsync(async currentUserId =>
     {
-        await FriendService.SendFriendRequestAsync(currentUserId, usernameToAdd);
+        await FriendService.SendFriendRequestAsync(currentUserId, usernameToAdd, cancellationToken: default);
         success = $"Friend request sent to {usernameToAdd.Trim()}.";
         usernameToAdd = string.Empty;
     });
 
     private Task AcceptRequestAsync(Guid requesterUserId) =>
-        RunAsync(currentUserId => FriendService.AcceptFriendRequestAsync(currentUserId, requesterUserId));
+        RunAsync((Guid currentUserId) => FriendService.AcceptFriendRequestAsync(currentUserId, requesterUserId, cancellationToken: default));
 
     private Task RemoveRequestAsync(Guid otherUserId) =>
-        RunAsync(currentUserId => FriendService.RemoveFriendRequestAsync(currentUserId, otherUserId));
+        RunAsync((Guid currentUserId) => FriendService.RemoveFriendRequestAsync(currentUserId, otherUserId, cancellationToken: default));
 
     private Task RemoveFriendAsync(Guid friendUserId) =>
-        RunAsync(currentUserId => FriendService.RemoveFriendAsync(currentUserId, friendUserId));
+        RunAsync((Guid currentUserId) => FriendService.RemoveFriendAsync(currentUserId, friendUserId, cancellationToken: default));
 
     private async Task OpenChatAsync(Guid friendUserId)
     {
         try
         {
-            var chat = await ChatService.OpenPrivateChatAsync(await CurrentUser.GetIdAsync(), friendUserId);
+            GetChatDto chat = await ChatService.OpenPrivateChatAsync(await CurrentUser.GetIdAsync(), friendUserId, cancellationToken: default);
             Navigation.NavigateTo($"/chat/{chat.Id}");
         }
         catch (Exception exception)
