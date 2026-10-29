@@ -193,18 +193,26 @@ public class ChatService(
         GetUserDto otherUser,
         CancellationToken cancellationToken)
     {
+        Console.WriteLine($"Opening private chat with user {otherUser.Id} for current user {currentUserId}");
         if (currentUserId == otherUser.Id)
             throw new ArgumentException("You cannot start a private chat with yourself.");
 
+        Console.WriteLine($"Checking for existing private chat between {currentUserId} and {otherUser.Id}");
+
         GetChatDto? existingChat = await chatRepository.GetPrivateChatBetweenAsync(currentUserId, otherUser.Id, cancellationToken);
+        Console.WriteLine($"Existing chat: {existingChat?.Id}");
         if (existingChat is not null)
             return existingChat;
+
+        Console.WriteLine($"No existing private chat found between {currentUserId} and {otherUser.Id}");
 
         if (!otherUser.AllowDirectMessagesFromEveryone
             && !await AreFriendsAsync(currentUserId, otherUser.Id, cancellationToken))
         {
             throw new DirectMessagesNotAllowedException();
         }
+
+        Console.WriteLine($"Creating private chat between {currentUserId} and {otherUser.Id}");
 
         Chat chat = Chat.Create(EChatType.Private, null);
         await SaveChatAsync(chat, cancellationToken);
