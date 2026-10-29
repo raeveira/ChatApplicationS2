@@ -23,11 +23,11 @@ public static class AuthEndpoints
         {
             try
             {
-                var user = await authService.LoginAsync(
+                GetUserDto user = await authService.LoginAsync(
                     new LoginRequest { Username = username ?? string.Empty, Password = password ?? string.Empty },
                     context.RequestAborted);
 
-                var identity = new ClaimsIdentity(
+                ClaimsIdentity identity = new ClaimsIdentity(
                 [
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Name, user.Username),

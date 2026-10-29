@@ -11,7 +11,7 @@
         <input type="text" class="modal-search" placeholder="Search friends" @bind="search" @bind:event="oninput" />
 
         <div class="modal-friends">
-            @foreach (var friend in VisibleFriends)
+            @foreach (GetFriendDto friend in VisibleFriends)
             {
                 <label class="modal-friend @(selectedFriendIds.Contains(friend.UserId) ? "selected" : null)">
                     <Avatar Size="34" Color="#444" IconUrl="@friend.IconUrl" Name="@friend.Username" />
@@ -70,7 +70,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        friends = await FriendService.GetFriendsAsync(await CurrentUser.GetIdAsync());
+        friends = await FriendService.GetFriendsAsync(await CurrentUser.GetIdAsync(), cancellationToken: default);
     }
 
     private void ToggleFriend(Guid friendUserId, bool isSelected)
@@ -85,10 +85,10 @@
     {
         try
         {
-            var currentUserId = await CurrentUser.GetIdAsync();
-            var chat = selectedFriendIds.Count == 1
-                ? await ChatService.OpenPrivateChatAsync(currentUserId, selectedFriendIds.First())
-                : await ChatService.CreateGroupChatAsync(currentUserId, GetGroupName(), selectedFriendIds);
+            Guid currentUserId = await CurrentUser.GetIdAsync();
+            GetChatDto chat = selectedFriendIds.Count == 1
+                ? await ChatService.OpenPrivateChatAsync(currentUserId, selectedFriendIds.First(), cancellationToken: default)
+                : await ChatService.CreateGroupChatAsync(currentUserId, GetGroupName(), selectedFriendIds, cancellationToken: default);
 
             await OnClose.InvokeAsync();
             Navigation.NavigateTo($"/chat/{chat.Id}");
