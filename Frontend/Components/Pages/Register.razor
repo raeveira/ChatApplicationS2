@@ -91,7 +91,7 @@
         }
     }
 
-    private sealed class RegisterModel
+    private class RegisterModel
     {
         [Required(ErrorMessage = "Username is required.")]
         [StringLength(User.MaxUsernameLength, MinimumLength = User.MinUsernameLength,
