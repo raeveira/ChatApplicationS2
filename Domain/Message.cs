@@ -26,8 +26,10 @@ public sealed class Message
 
         var trimmed = content.Trim();
         if (trimmed.Length > MaxContentLength)
+        {
             throw new ArgumentException(
                 $"Message content cannot be longer than {MaxContentLength} characters.", nameof(content));
+        }
 
         return new Message(Guid.NewGuid(), sentById, sentInId, trimmed, DateTime.UtcNow);
     }
